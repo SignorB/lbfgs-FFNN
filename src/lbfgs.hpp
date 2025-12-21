@@ -141,5 +141,6 @@ public:
     return -z;
   }
 
+  using MinimizerBase<V, M>::solve;
 private:
 };

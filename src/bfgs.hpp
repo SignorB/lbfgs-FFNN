@@ -124,24 +124,5 @@ public:
     return x;
   }
 
-  V solve(V x, VecFun<autodiff::VectorXvar, autodiff::var> &f_ad) {
-    GradFun<V> gradient_wrapper = [&](V x_double) -> V {
-        
-        autodiff::VectorXvar x_var = x_double.template cast<autodiff::var>();
-        
-        autodiff::var y = f_ad(x_var); 
-        
-
-        Eigen::VectorXd grad = autodiff::gradient(y, x_var);
-        return grad;
-    };
-
-    VecFun<V, double> f_double = [&](V x_val) {
-      autodiff::VectorXvar x_var = x_val.template cast<autodiff::var>();
-      return autodiff::val(f_ad(x_var));
-    };
-
-    return solve(x, f_double, gradient_wrapper);
-  }
-
+  using MinimizerBase<V, M>::solve;
 };
