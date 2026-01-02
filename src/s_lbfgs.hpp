@@ -25,7 +25,7 @@
  * @tparam V Vector type (e.g., Eigen::VectorXd).
  * @tparam M Matrix type (e.g., Eigen::MatrixXd).
  */
-template <typename V, typename M>
+template <typename V, typename M,typename D>
 class SLBFGS : public MinimizerBase<V, M> {
   using Base = MinimizerBase<V, M>;
   using Base::_iters;
@@ -34,7 +34,59 @@ class SLBFGS : public MinimizerBase<V, M> {
 //  using Base::alpha_wolfe;
   using Base::m;
 
+
+
+using S_VecFun=std::function<double(const V&,const D& )>; //loss function must take weights and data as input and returns a double
+using S_GradFun=std::function<void(const V&,const D&, V& grad )>; //gradient function must take weights and data as input and returns a vector
+
+
 public:
+  V stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,const S_GradFun &S_GradFun, int m, int M_param, int L, int b, int b_H, double step_size, int N);
+  static std::vector<size_t> sample_minibatch_indices(const size_t N, size_t batch_size, std::mt19937 &rng);
+  V solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient) override;
+
+};
+
+
+template <typename V, typename M, typename D>
+std::vector<size_t> SLBFGS<V,M,D>:: sample_minibatch_indices(const size_t N, size_t batch_size, std::mt19937 &rng){  
+    
+    if (N == 0 || batch_size == 0) {
+        std::cerr << "Warning: sampling minibatch from empty dataset or with batch_size=0." << std::endl;
+      return {};
+    }
+
+    std::vector<size_t> idx(N);
+    for (size_t i = 0; i < N; ++i) {
+      idx[i] = i;
+    }
+
+
+    if (batch_size >= N) {
+        std::cerr << "Warning: batch_size >= dataset size. Returning full dataset indices." << std::endl;
+        return idx;
+        }
+
+    //Fisher Yates shffle
+    for (size_t i = 0; i < batch_size; ++i) {
+      std::uniform_int_distribution<size_t> dist(i, N -1);
+      size_t j =dist(rng);
+      std::swap(idx[i], idx[j]);
+    }
+    idx.resize(batch_size);
+    return idx;
+    }
+
+
+template <typename V, typename M, typename D>
+  V SLBFGS<V,M,D>::solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient){
+    // Implementation of the standard (non-stochastic) L-BFGS solve method
+    // This can be left unimplemented if only stochastic_solve is needed
+    return x;
+  };
+
+
+  
 
 /**
  * @brief Compute the product of the Hessian of f at x with vector v using automatic differentiation.
@@ -63,7 +115,8 @@ Eigen::VectorXd hessian_vector_product(Func &f, const Eigen::VectorXd &x, const 
     VectorXvar dugrad = autodiff::gradient(directional, x_var);
 
     return dugrad.cast<double>();
-}
+};
+
 
 
 
@@ -76,9 +129,9 @@ Eigen::VectorXd hessian_vector_product(Func &f, const Eigen::VectorXd &x, const 
    *
    * @param x Initial guess for the minimizer (passed by value).
    * @param f Objective function to minimize, mapping V → double.
-   * @param Gradient Function returning the gradient ∇f(x), mapping V → V.
+   * @param Gradient Function returning the gradient ∇f(w,x), mapping (V,w) → V.
    * @param m Memory parameter: number of curvature pairs to store.
-   * @param M THe number of pair vectors (sj,yj) to use for the Hessian update.
+   * @param M_param THe number of pair vectors (sj,yj) to use for the Hessian update.
    * @param L The frequency of Hessian updates: every L iterations a new estimate of the Hessian is computed L=10 in the reference paper.
    * @param b Mini-batch size for stochastic gradient estimation.
    * @param b_H Mini-batch size for stochastic Hessian-vector product estimation. 10/20* b is suggested in the reference paper.
@@ -93,12 +146,9 @@ Eigen::VectorXd hessian_vector_product(Func &f, const Eigen::VectorXd &x, const 
    */
 
 
-using S_VecFun=std::function<double(const V &,const D & )>; //loss function must take weights and data as input and returns a double
-using S_GradFun=std::function<void(const V &,const D &, V& grad )>; //gradient function must take weights and data as input and returns a vector
-//it is a void function that fills the grad variable passed by reference, less copying
 
-
-V stochastic_solve(std::vector<V> x, V weights, S_VecFun<V,double> &f, S_GradFun<V,D> &Gradient, int m, int M, int L, int b, int b_H, double step_size, int N) {
+template <typename V, typename M, typename D>
+V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,const S_GradFun &S_GradFun, int m, int M_param, int L, int b, int b_H, double step_size, int N) {
     int r=0;
     
     //M H = M::Identity(x.size(), x.size()); //initialize H as identity
@@ -129,39 +179,39 @@ V stochastic_solve(std::vector<V> x, V weights, S_VecFun<V,double> &f, S_GradFun
     full_gradient /= N; // 1/N sum g_i(weights)
 
   
-    V xt = x;
+    V wt = weights;
     V variance_reduced_gradient = V::Zero(dim_weights);
     
 
-    for (t=0; t < m ; ++t){
+    for (int t=0; t < m ; ++t){
 
       
       auto minibatch_indices = sample_minibatch_indices(N, b, rng);
       
-      V grad_estimate_xt = V::Zero(dim_weights);
+      V grad_estimate_wt = V::Zero(dim_weights);
       V grad_estimate_wk = V::Zero(dim_weights);
-      V temp_grad_estimate_xt= V::Zero(dim_weights);
+      V temp_grad_estimate_wt= V::Zero(dim_weights);
       V temp_grad_estimate_wk= V::Zero(dim_weights);
       
       for (size_t i=0; i < minibatch_indices.size(); ++i) {
         size_t idx = minibatch_indices[i];
-        temp_grad_estimate_xt= V::Zero(dim_weights);
+        temp_grad_estimate_wt= V::Zero(dim_weights);
         temp_grad_estimate_wk= V::Zero(dim_weights);
-        S_GradFun(weights, x[idx], temp_grad_estimate_xt);
-        grad_estimate_xt += temp_grad_estimate_xt;
+        S_GradFun(weights, x[idx], temp_grad_estimate_wt);
+        grad_estimate_wt += temp_grad_estimate_wt;
         S_GradFun(weights, x[idx], temp_grad_estimate_wk);
         grad_estimate_wk += temp_grad_estimate_wk;
       }
     
-      grad_estimate_xt /= b;
+      grad_estimate_wt /= b;
       grad_estimate_wk /= b;
 
-      variance_reduced_gradient = (grad_estimate_xt - grad_estimate_wk) + full_gradient;
+      variance_reduced_gradient = (grad_estimate_wt - grad_estimate_wk) + full_gradient;
 
 
-      xt = xt - step_size* H * variance_reduced_gradient;
+      wt = wt - step_size * variance_reduced_gradient; //todo write H
 
-
+/*
       if (t%L==0 && t>0){
         //hessian update
         r++;
@@ -183,7 +233,7 @@ V stochastic_solve(std::vector<V> x, V weights, S_VecFun<V,double> &f, S_GradFun
         }
       y_list.push_back(y);
       }
-      
+   */   
 
 
 
@@ -192,14 +242,14 @@ V stochastic_solve(std::vector<V> x, V weights, S_VecFun<V,double> &f, S_GradFun
 
 
 
-    return x;
-  }
+    return wt;
+  };
 
 
 
 
 
- private:
+
   //returns uniform sample of a minibatch
   /*
   * @brief Sample a minibatch of indices from 0 to N-1.
@@ -208,33 +258,7 @@ V stochastic_solve(std::vector<V> x, V weights, S_VecFun<V,double> &f, S_GradFun
   * @param batch_size Size of the minibatch to sample.
   * @param rng Random number generator.
   */
-  static   std::vector<size_t> sample_minibatch_indices(const size_t N, size_t batch_size, std::mt19937 &rng) {
-    
-    if (N == 0 || batch_size == 0) {
-        std::cerr << "Warning: sampling minibatch from empty dataset or with batch_size=0." << std::endl;
-      return {};
-    }
-
-    std::vector<size_t> idx(N);
-    for (size_t i = 0; i < N; ++i) {
-      idx[i] = i;
-    }
+  };
 
 
-    if (batch_size >= N) {
-        std::cerr << "Warning: batch_size >= dataset size. Returning full dataset indices." << std::endl;
-        return idx;
-        }
 
-    //Fisher Yates shffle
-    for (size_t i = 0; i < batch_size; ++i) {
-      std::uniform_int_distribution<size_t> dist(i, N -1);
-      size_t j =dist(rng);
-      std::swap(idx[i], idx[j]);
-    }
-    idx.resize(batch_size);
-    return idx;
-    }
-};
-
-}
