@@ -83,6 +83,13 @@ public:
    * @return Approximate minimizer of the function f.
    */
   virtual V solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient) = 0;
+
+  /**
+   * @brief Convenience overload: accept an autodiff objective and compute its gradient automatically.
+   *
+   * Wraps the autodiff loss f_ad(x_var) into a double-valued objective and gradient, then
+   * forwards to the core solve(x, f, grad).
+   */
   V solve(V x, VecFun<autodiff::VectorXvar, autodiff::var> &f_ad) {
     GradFun<V> gradient_wrapper = [&](V x_double) -> V {
       autodiff::VectorXvar x_var = x_double.template cast<autodiff::var>();
