@@ -62,7 +62,7 @@ int main() {
 			mean_loss += loss(current_weights, x_data[i]);
 		}
 		mean_loss /= N;
-		std::cout << "Iterazione " << iter+1 << ": Loss media = " << mean_loss << std::endl;
+		//std::cout << "Iterazione " << iter+1 << ": Loss media = " << mean_loss << std::endl;
 	}
 	std::cout << "Risultato ottimizzazione (w):\n" << current_weights.transpose() << std::endl;
 	return 0;

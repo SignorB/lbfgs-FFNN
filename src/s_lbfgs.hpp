@@ -47,6 +47,14 @@ public:
 
 };
 
+  //returns uniform sample of a minibatch
+  /**
+  * @brief Sample a minibatch of indices from 0 to N-1.
+  *
+  * @param N Total number of data points.
+  * @param batch_size Size of the minibatch to sample.
+  * @param rng Random number generator.
+  */
 
 template <typename V, typename M, typename D>
 std::vector<size_t> SLBFGS<V,M,D>:: sample_minibatch_indices(const size_t N, size_t batch_size, std::mt19937 &rng){  
@@ -96,25 +104,41 @@ template <typename V, typename M, typename D>
  * @param x Point at which to evaluate the Hessian.
  * @param v Vector to multiply with the Hessian.
  */
-template <typename Func>
-Eigen::VectorXd hessian_vector_product(Func &f, const Eigen::VectorXd &x, const Eigen::VectorXd &v) {
+template <typename Func,typename V, typename D>
+Eigen::VectorXd hessian_vector_product(Func &f, const V &weights ,const D &x, const V &v) {
     using autodiff::VectorXvar;
     using autodiff::var;
 
 
-    VectorXvar x_var = x.cast<var>();
-    var y = f(x_var); //f(x)
-    VectorXvar grad = autodiff::gradient(y, x_var);
+    VectorXvar w_var(weights.size());
+    for (int i = 0; i < weights.size(); ++i) {
+      w_var(i) = weights(i);
+    }
+    
+    VectorXvar v_var(v.size());
+    for (int i = 0; i < v.size(); ++i) {
+      v_var(i) = v(i);
+    }
+
+
+    var loss= f(w_var);
+
+    VectorXvar grad = autodiff::gradient(loss, w_var);
 
     // Compute directional derivative of the gradient in the direction of v
 
-    VectorXvar v_var = v.cast<var>();
     var directional = grad.dot(v_var);
 
     //hessian*v
-    VectorXvar dugrad = autodiff::gradient(directional, x_var);
+    VectorXvar dugrad = autodiff::gradient(directional, w_var);
+    
+    Eigen::VectorXd result(dugrad.size());
+    for (int i = 0; i < dugrad.size(); ++i) {
+      result(i) = autodiff::val(dugrad(i));
+    }
 
-    return dugrad.cast<double>();
+    return result;
+  
 };
 
 
@@ -153,7 +177,7 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
     
     //M H = M::Identity(x.size(), x.size()); //initialize H as identity
 
-    std::vector<double> u_list;       //stored iterates for Hessian update
+    std::vector<V> u_list;       //stored iterates for Hessian update
     std::vector<V> s_list;        // displacement u_r − u_r-1
     std::vector<V> y_list;        // Hessian action on displacement
     std::vector<double> rho_list; // Scalars ρ_k = 1 / (y_kᵀ s_k)
@@ -211,15 +235,16 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
 
       wt = wt - step_size * variance_reduced_gradient; //todo write H
 
-/*
+
       if (t%L==0 && t>0){
         //hessian update
         r++;
         
         V u = V::Zero(x.size());
         for (int j=t-L; j<t; ++j){
-          u += x(j);
+          u += x[j];
         }
+
         u /= L;
         u_list.push_back(u); //todo Formaggia disse qualcosa su pushback da controllare se va bene
         auto minibatch_indices_H = sample_minibatch_indices(N, b_H, rng);
@@ -229,11 +254,14 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
         V y = V::Zero(x.size());
         for (size_t i=0; i < minibatch_indices_H.size(); ++i) {
           size_t idx = minibatch_indices_H[i];
-          y += hessian_vector_product(f_components[idx], u_list[r - 1], s);
-        }
+        auto f_single = [&](const autodiff::VectorXvar& w_var) { //function that takes only weights as input otherwise autodiff doesnt work because it doesnt know how to handle extra parameters
+        return f(w_var, x[idx]);
+      };
+        y += hessian_vector_product(f_single, u_list[r - 1], x[idx],s); //todo mi sa che c'è un errore di conversione in VectorXd qui dentro        
+          }
       y_list.push_back(y);
       }
-   */   
+   
 
 
 
@@ -250,14 +278,6 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
 
 
 
-  //returns uniform sample of a minibatch
-  /*
-  * @brief Sample a minibatch of indices from 0 to N-1.
-  *
-  * @param N Total number of data points.
-  * @param batch_size Size of the minibatch to sample.
-  * @param rng Random number generator.
-  */
   };
 
 
