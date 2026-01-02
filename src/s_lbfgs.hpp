@@ -83,17 +83,22 @@ Eigen::VectorXd hessian_vector_product(Func &f, const Eigen::VectorXd &x, const 
    * @param b Mini-batch size for stochastic gradient estimation.
    * @param b_H Mini-batch size for stochastic Hessian-vector product estimation. 10/20* b is suggested in the reference paper.
    * @param step_size Fixed step size to use in the updates.
+   * @param N Total number of component functions in the finite sum loss function. i.e. = number of data points.
    * 
    * 
    * 
-   * @param f_components Vector of component functions for finite sum loss function. 
-   * @param Gradient_components Vector of gradient functions for finite sum loss function.
+
    * 
    * @return The final estimate of the minimizer.
    */
 
-V stochastic_solve(V x, std::vector<VecFun<V, double>> &f_components, std::vector<GradFun<V>> &Gradient_components, int m, int M, int L, int b, int b_H, double step_size) {
 
+using S_VecFun=std::function<double(const V &,const D & )>; //loss function must take weights and data as input and returns a double
+using S_GradFun=std::function<void(const V &,const D &, V& grad )>; //gradient function must take weights and data as input and returns a vector
+//it is a void function that fills the grad variable passed by reference, less copying
+
+
+V stochastic_solve(std::vector<V> x, V weights, S_VecFun<V,double> &f, S_GradFun<V,D> &Gradient, int m, int M, int L, int b, int b_H, double step_size, int N) {
     int r=0;
     
     //M H = M::Identity(x.size(), x.size()); //initialize H as identity
@@ -107,17 +112,25 @@ V stochastic_solve(V x, std::vector<VecFun<V, double>> &f_components, std::vecto
     int seed=56;
     std::mt19937 rng(seed); 
 
-    const size_t N = x.size();
+    int dim_weights = weights.size();
+
     
     while (_iters < _max_iters) { //todo add convergence check 
     // Sample minibatch for gradient estimation
-    V full_gradient = V::Zero(x.size());
+    V full_gradient = V::Zero(dim_weights);
+    V temp_gradient= V::Zero(dim_weights);
+
     for (size_t i=0; i < N; ++i) {
-      full_gradient += Gradient_components[i](x);
+      temp_gradient= V::Zero(dim_weights);
+      S_GradFun(weights, x[i], temp_gradient);
+      full_gradient += temp_gradient;
     }
+
+    full_gradient /= N; // 1/N sum g_i(weights)
+
   
     V xt = x;
-    V variance_reduced_gradient = V::Zero(x.size());
+    V variance_reduced_gradient = V::Zero(dim_weights);
     
 
     for (t=0; t < m ; ++t){
@@ -125,16 +138,26 @@ V stochastic_solve(V x, std::vector<VecFun<V, double>> &f_components, std::vecto
       
       auto minibatch_indices = sample_minibatch_indices(N, b, rng);
       
-      V grad_estimate_xt = V::Zero(x.size());
-      V grad_estimate_wk = V::Zero(x.size());
+      V grad_estimate_xt = V::Zero(dim_weights);
+      V grad_estimate_wk = V::Zero(dim_weights);
+      V temp_grad_estimate_xt= V::Zero(dim_weights);
+      V temp_grad_estimate_wk= V::Zero(dim_weights);
       
       for (size_t i=0; i < minibatch_indices.size(); ++i) {
         size_t idx = minibatch_indices[i];
-        grad_estimate_xt += Gradient_components[idx](xt);
-        grad_estimate_wk += Gradient_components[idx](x);
+        temp_grad_estimate_xt= V::Zero(dim_weights);
+        temp_grad_estimate_wk= V::Zero(dim_weights);
+        S_GradFun(weights, x[idx], temp_grad_estimate_xt);
+        grad_estimate_xt += temp_grad_estimate_xt;
+        S_GradFun(weights, x[idx], temp_grad_estimate_wk);
+        grad_estimate_wk += temp_grad_estimate_wk;
       }
     
+      grad_estimate_xt /= b;
+      grad_estimate_wk /= b;
+
       variance_reduced_gradient = (grad_estimate_xt - grad_estimate_wk) + full_gradient;
+
 
       xt = xt - step_size* H * variance_reduced_gradient;
 
@@ -178,6 +201,13 @@ V stochastic_solve(V x, std::vector<VecFun<V, double>> &f_components, std::vecto
 
  private:
   //returns uniform sample of a minibatch
+  /*
+  * @brief Sample a minibatch of indices from 0 to N-1.
+  *
+  * @param N Total number of data points.
+  * @param batch_size Size of the minibatch to sample.
+  * @param rng Random number generator.
+  */
   static   std::vector<size_t> sample_minibatch_indices(const size_t N, size_t batch_size, std::mt19937 &rng) {
     
     if (N == 0 || batch_size == 0) {
