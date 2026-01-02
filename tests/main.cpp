@@ -1,6 +1,4 @@
 #include "test.hpp"
-#include <iostream>
-
 #include <eigen3/unsupported/Eigen/IterativeSolvers>
 
 #include "../src/bfgs.hpp"
@@ -14,7 +12,7 @@ using Mat = Eigen::MatrixXd;
 using minimizerPtr = std::shared_ptr<MinimizerBase<Vec, Mat>>;
 
 void test_rastrigin(minimizerPtr &solver) {
-  
+
   VecFun<Vec, double> f = [](Vec v) {
     double val = 0.0;
     double A = 10.0;
