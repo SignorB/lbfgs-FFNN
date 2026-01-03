@@ -16,7 +16,7 @@ else()
     message(WARNING "LTO not supported: ${output}")
 endif()
 
-add_compile_options(-O3 -march=native -ffast-math -Wall -Wextra)
+add_compile_options(-O3 -march=native -ffast-math -Wall -Wextra -ftemplate-depth=32768)
 
 find_package(Eigen3 REQUIRED)
 

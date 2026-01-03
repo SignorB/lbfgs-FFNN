@@ -7,7 +7,7 @@
 
 struct Linear {
   static inline double apply(double x) { return x; }
-  static inline double prime(double x) { return 1.0; }
+  static inline double prime(double /*x*/) { return 1.0; }
   static constexpr double scale = 1.0;
 };
 
@@ -50,11 +50,11 @@ public:
 template <int In, int Out, typename Activation = Linear>
 class DenseLayer : public Layer {
 private:
-  using MapMatW = Eigen::Map<const Eigen::Matrix<double, Out, In>>;
-  using MapVecB = Eigen::Map<const Eigen::Matrix<double, Out, 1>>;
+  using MapMatW = Eigen::Map<const Eigen::MatrixXd>;
+  using MapVecB = Eigen::Map<const Eigen::VectorXd>;
 
-  using MapMatW_Grad = Eigen::Map<Eigen::Matrix<double, Out, In>>;
-  using MapVecB_Grad = Eigen::Map<Eigen::Matrix<double, Out, 1>>;
+  using MapMatW_Grad = Eigen::Map<Eigen::MatrixXd>;
+  using MapVecB_Grad = Eigen::Map<Eigen::VectorXd>;
 
   double *params_ptr = nullptr;
   double *grads_ptr = nullptr;
@@ -75,8 +75,8 @@ public:
   }
 
   void forward(const Eigen::MatrixXd &input, Eigen::MatrixXd &output) override {
-    MapMatW W(params_ptr);
-    MapVecB b(params_ptr + (Out * In));
+    MapMatW W(params_ptr, Out, In);
+    MapVecB b(params_ptr + (Out * In), Out);
 
     input_cache = input;
     z_cache = W * input;
@@ -88,17 +88,18 @@ public:
   }
 
   void backward(const Eigen::MatrixXd &next_grad, Eigen::MatrixXd *prev_grad) override {
-    MapMatW_Grad dW(grads_ptr);
-    MapVecB_Grad db(grads_ptr + (Out * In));
+    MapMatW_Grad dW(grads_ptr, Out, In);
+    MapVecB_Grad db(grads_ptr + (Out * In), Out);
 
     Eigen::MatrixXd dZ = next_grad.cwiseProduct(
         z_cache.unaryExpr([](double v) { return Activation::prime(v); }));
 
+    //nalias ~= __restrict__
     dW.noalias() += dZ * input_cache.transpose();
     db.noalias() += dZ.rowwise().sum();
 
     if (prev_grad) {
-      MapMatW W(params_ptr);
+      MapMatW W(params_ptr, Out, In);
       *prev_grad = W.transpose() * dZ;
     }
   }

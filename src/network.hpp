@@ -136,4 +136,29 @@ public:
     Eigen::VectorXd final_params = minimizer->solve(x, f, g);
     this->setParams(final_params);
   }
+
+  void test(const Eigen::MatrixXd &inputs, const Eigen::MatrixXd &targets) {
+    const auto &output = this->forward(inputs);
+    long correct = 0;
+    long total = inputs.cols();
+
+    for (long i = 0; i < total; ++i) {
+        Eigen::Index pred_idx, true_idx;
+        output.col(i).maxCoeff(&pred_idx);
+        targets.col(i).maxCoeff(&true_idx);
+        if (pred_idx == true_idx) {
+            correct++;
+        }
+    }
+
+    double accuracy = (double)correct / total * 100.0;
+    Eigen::MatrixXd diff = output - targets;
+    double mse = 0.5 * diff.squaredNorm();
+
+    std::cout << "=== Test Results ===" << std::endl;
+    std::cout << "Samples: " << total << std::endl;
+    std::cout << "Accuracy: " << accuracy << "% (" << correct << "/" << total << ")" << std::endl;
+    std::cout << "Total MSE: " << mse << std::endl;
+    std::cout << "====================" << std::endl;
+  }
 };

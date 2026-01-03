@@ -130,7 +130,7 @@ protected:
   double max_line_iters = 50;
 
   /// Memory size parameter (e.g. for L-BFGS methods).
-  size_t m = 20;
+  size_t m = 16;
 
   /// Initial step size guess for Wolfe line search.
   double alpha_wolfe = 1e-3;
