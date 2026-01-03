@@ -17,9 +17,11 @@ set(AUTODIFF_BUILD_PYTHON OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(lib/autodiff)
 
-
 add_executable(main_app src/main.cpp)
 add_executable(test_runner tests/main.cpp)
+add_executable(test_runner_autodiff tests/autodiff_tests.cpp)
 
 target_link_libraries(main_app PRIVATE autodiff::autodiff Eigen3::Eigen)
 target_link_libraries(test_runner PRIVATE autodiff::autodiff Eigen3::Eigen)
+target_link_libraries(test_runner_autodiff PRIVATE autodiff::autodiff Eigen3::Eigen)
+
