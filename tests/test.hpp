@@ -28,6 +28,49 @@ class TestSuite {
   using testFunction = std::function<void(minimizerPtr &)>;
 
 public:
+  struct StatusConfig {
+    double f_tol = 1e-6;
+    double g_tol = 1e-6;
+    double dist_tol = 1e-4;
+  };
+
+  /**
+   * @brief Utility to summarize convergence against a known target.
+   *
+   * Prints initial/final loss and gradient norms, distance to the target, and
+   * classifies the outcome (global minimum within tolerances, stationary away
+   * from target, or not converged).
+   */
+  static void printStatus(double f0,
+                          double f1,
+                          double g0,
+                          double g1,
+                          double dist,
+                          const V &expected,
+                          StatusConfig cfg = default_status_cfg) {
+    std::string status;
+    if (f1 <= cfg.f_tol && g1 <= cfg.g_tol && dist <= cfg.dist_tol)
+      status = "global minimum";
+    else if (g1 <= cfg.g_tol && dist > cfg.dist_tol)
+      status = "stationary point";
+    else
+      status = "not converged";
+
+    std::cout << " f0=" << f0 << " f1=" << f1
+              << " ||g0||=" << g0 << " ||g1||=" << g1
+              << " dist_to_target=" << dist << " -> " << status << std::endl;
+
+    if (dist > cfg.dist_tol)
+      std::cout << "    target: " << expected.transpose() << std::endl;
+  }
+
+  /// Override default tolerances used by printStatus when no per-call override is provided.
+  static void setDefaultStatusConfig(const StatusConfig &cfg) {
+    default_status_cfg = cfg;
+  }
+
+  /// Get current default tolerances.
+  static StatusConfig defaultStatusConfig() { return default_status_cfg; }
   /**
    * @brief Construct an empty test suite.
    *
@@ -112,6 +155,8 @@ private:
 
   /// List of (test name, test function) pairs.
   std::vector<std::pair<std::string, testFunction>> tests;
+
+  inline static StatusConfig default_status_cfg{};
 };
 
 } // namespace Tests
