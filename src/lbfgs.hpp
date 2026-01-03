@@ -58,8 +58,13 @@ public:
       // Compute L-BFGS search direction
       p = compute_direction(grad, s_list, y_list, rho_list);
 
+      //avoid xplosions
+      if (_iters == 0)
+        alpha_wolfe = std::min(1.0, 1.0 / grad.norm());
+      else
+        alpha_wolfe = this->line_search(x, p, f, Gradient);
       // Wolfe line search to select step length
-      alpha_wolfe = this->line_search(x, p, f, Gradient);
+      
 
       // Point update
       x_new = x + alpha_wolfe * p;
@@ -71,19 +76,24 @@ public:
 
       x = x_new;
 
-      // Store curvature pair (s_k, y_k)
-      double rho = 1.0 / y.dot(s);
-      s_list.push_back(s);
-      y_list.push_back(y);
-      rho_list.push_back(rho);
 
-      // Enforce memory limit m
-      if (s_list.size() > m) {
-        s_list.erase(s_list.begin());
-        y_list.erase(y_list.begin());
-        rho_list.erase(rho_list.begin());
+      double ys = y.dot(s); 
+
+      //check curvature for non convex problems
+      if (ys > 1e-10) { 
+          double rho = 1.0 / ys;
+          s_list.push_back(s);
+          y_list.push_back(y);
+          rho_list.push_back(rho);
+
+          // Enforce memory limit m
+          if (s_list.size() > m) {
+            s_list.erase(s_list.begin());
+            y_list.erase(y_list.begin());
+            rho_list.erase(rho_list.begin());
+          }
       }
-
+      
       grad = grad_new;
     }
 

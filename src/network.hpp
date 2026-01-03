@@ -16,8 +16,8 @@ private:
   std::vector<double> grads;
   size_t params_size = 0;
 
-  std::vector<std::vector<double>> activations;
-  std::vector<std::vector<double>> deltas;
+  std::vector<Eigen::MatrixXd> activations;
+  std::vector<Eigen::MatrixXd> deltas;
 
 public:
   Network() = default;
@@ -41,51 +41,50 @@ public:
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::normal_distribution<double> dist(0.0, 0.5);
-
-    for (double &p : params) {
-      p = dist(gen);
-    }
 
     activations.clear();
     deltas.clear();
-
-    activations.emplace_back(std::vector<double>(layers.front()->getInSize()));
-    deltas.emplace_back(std::vector<double>(layers.front()->getInSize()));
-
-    for (const auto &layer : layers) {
-      size_t out_size = layer->getOutSize();
-      activations.emplace_back(std::vector<double>(out_size));
-      deltas.emplace_back(std::vector<double>(out_size));
-    }
 
     double *p_ptr = params.data();
     double *g_ptr = grads.data();
 
     for (auto &layer : layers) {
       layer->bind(p_ptr, g_ptr);
+      double std_dev = layer->getInitStdDev();
+      std::normal_distribution<double> dist(0.0, std_dev);
+      for (int i = 0; i < layer->getParamsSize(); ++i) {
+        p_ptr[i] = dist(gen);
+      }
       p_ptr += layer->getParamsSize();
       g_ptr += layer->getParamsSize();
     }
   }
 
-  const std::vector<double> &forward(const std::vector<double> &input) {
+  const Eigen::MatrixXd &forward(const Eigen::MatrixXd &input) {
+    if (activations.empty() || activations[0].cols() != input.cols()) {
+        activations.resize(layers.size() + 1);
+    }
+    
     activations[0] = input;
-
+    
     for (size_t i = 0; i < layers.size(); ++i) {
-      layers[i]->forward(activations[i].data(), activations[i + 1].data());
+      layers[i]->forward(activations[i], activations[i + 1]);
     }
 
     return activations.back();
   }
 
-  void backward(const std::vector<double> &loss_grad) {
+  void backward(const Eigen::MatrixXd &loss_grad) {
+    if (deltas.size() != layers.size() + 1) {
+        deltas.resize(layers.size() + 1);
+    }
+
     deltas.back() = loss_grad;
 
     for (int i = layers.size() - 1; i >= 0; --i) {
       layers[i]->backward(
-          deltas[i + 1].data(),
-          deltas[i].data());
+          deltas[i + 1],
+          (i > 0) ? &deltas[i] : nullptr);
     }
   }
 
@@ -104,25 +103,18 @@ public:
     std::copy(grads.begin(), grads.end(), out_grads.data());
   }
 
-  void train(const std::vector<std::vector<double>> &inputs,
-             const std::vector<std::vector<double>> &targets,
+  void train(const Eigen::MatrixXd &inputs,
+             const Eigen::MatrixXd &targets,
              std::shared_ptr<MinimizerBase<Eigen::VectorXd, Eigen::MatrixXd>> minimizer) {
-
 
     Eigen::VectorXd x(params_size);
     std::copy(params.begin(), params.end(), x.data());
 
     VecFun<Eigen::VectorXd, double> f = [&](const Eigen::VectorXd &p) -> double {
       this->setParams(p);
-      double total_loss = 0.0;
-
-      for (size_t k = 0; k < inputs.size(); ++k) {
-        const auto &output = this->forward(inputs[k]);
-        for (size_t i = 0; i < output.size(); ++i) {
-          double err = output[i] - targets[k][i];
-          total_loss += 0.5 * err * err;
-        }
-      }
+      const auto &output = this->forward(inputs);
+      Eigen::MatrixXd diff = output - targets;
+      double total_loss = 0.5 * diff.squaredNorm();
       std::cout << "MSE: " << total_loss << std::endl;
       return total_loss;
     };
@@ -131,17 +123,10 @@ public:
       this->setParams(p);
       this->zeroGrads();
 
-      std::vector<double> loss_grad(layers.back()->getOutSize());
+      const auto &output = this->forward(inputs);
+      Eigen::MatrixXd loss_grad = output - targets;
 
-      for (size_t k = 0; k < inputs.size(); ++k) {
-        const auto &output = this->forward(inputs[k]);
-
-        for (size_t i = 0; i < output.size(); ++i) {
-          loss_grad[i] = output[i] - targets[k][i];
-        }
-
-        this->backward(loss_grad);
-      }
+      this->backward(loss_grad);
 
       Eigen::VectorXd grad_vec(params_size);
       this->getGrads(grad_vec);

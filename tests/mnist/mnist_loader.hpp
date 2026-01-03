@@ -1,6 +1,6 @@
 #pragma once
+#include <Eigen/Core>
 #include <iostream>
-#include <vector>
 #include <fstream>
 #include <string>
 #include <cstdint>
@@ -17,7 +17,7 @@ private:
     }
 
 public:
-    static std::vector<std::vector<double>> loadImages(const std::string& path) {
+    static Eigen::MatrixXd loadImages(const std::string& path, int max_images = 0) {
         std::ifstream file(path, std::ios::binary);
         if (!file.is_open()) throw std::runtime_error("Cannot open file: " + path);
 
@@ -40,19 +40,28 @@ public:
         n_cols = reverseInt(n_cols);
 
         int image_size = n_rows * n_cols;
-        std::vector<std::vector<double>> images(number_of_images, std::vector<double>(image_size));
 
-        for (uint32_t i = 0; i < number_of_images; ++i) {
+        uint32_t count = number_of_images;
+        if (max_images > 0 && max_images < (int)number_of_images) {
+            count = (uint32_t)max_images;
+        }
+
+        std::cout << "Loading " << count << " images..." << std::endl;
+
+        Eigen::MatrixXd images(image_size, count);
+
+        for (uint32_t i = 0; i < count; ++i) {
             for (int j = 0; j < image_size; ++j) {
                 unsigned char temp = 0;
                 file.read((char*)&temp, sizeof(temp));
-                images[i][j] = (double)temp / 255.0; 
+
+                images(j, i) = (double)temp / 255.0; 
             }
         }
         return images;
     }
 
-    static std::vector<std::vector<double>> loadLabels(const std::string& path) {
+    static Eigen::MatrixXd loadLabels(const std::string& path, int max_images = 0) {
         std::ifstream file(path, std::ios::binary);
         if (!file.is_open()) throw std::runtime_error("Cannot open file: " + path);
 
@@ -66,13 +75,22 @@ public:
         file.read((char*)&number_of_labels, sizeof(number_of_labels));
         number_of_labels = reverseInt(number_of_labels);
 
-        std::vector<std::vector<double>> labels(number_of_labels, std::vector<double>(10, 0.0));
+        uint32_t count = number_of_labels;
+        if (max_images > 0 && max_images < (int)number_of_labels) {
+            count = (uint32_t)max_images;
+        }
 
-        for (uint32_t i = 0; i < number_of_labels; ++i) {
+        std::cout << "Loading " << count << " labels..." << std::endl;
+
+ 
+        Eigen::MatrixXd labels = Eigen::MatrixXd::Zero(10, count);
+
+        for (uint32_t i = 0; i < count; ++i) {
             unsigned char temp = 0;
             file.read((char*)&temp, sizeof(temp));
             if(temp < 10) {
-                labels[i][(int)temp] = 1.0;
+ 
+                labels((int)temp, i) = 1.0;
             }
         }
         return labels;

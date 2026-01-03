@@ -1,108 +1,109 @@
 #pragma once
 #include "common.hpp"
-#include <autodiff/reverse/var.hpp>
-#include <autodiff/reverse/var/eigen.hpp>
 #include <Eigen/Core>
 #include <Eigen/src/Core/Map.h>
+#include <autodiff/reverse/var.hpp>
+#include <autodiff/reverse/var/eigen.hpp>
 
 struct Linear {
-    static inline double apply(double x) { return x; }
-    static inline double prime(double x) { return 1.0; }
+  static inline double apply(double x) { return x; }
+  static inline double prime(double x) { return 1.0; }
+  static constexpr double scale = 1.0;
 };
 
 struct ReLU {
-    static inline double apply(double x) { return (x > 0.0) ? x : 0.0; }
-    static inline double prime(double x) { return (x > 0.0) ? 1.0 : 0.0; }
+  static inline double apply(double x) { return (x > 0.0) ? x : 0.0; }
+  static inline double prime(double x) { return (x > 0.0) ? 1.0 : 0.0; }
+  static constexpr double scale = 1.41421356;
 };
 
 struct Sigmoid {
-    static inline double apply(double x) { return 1.0 / (1.0 + std::exp(-x)); }
-    static inline double prime(double x) {
-        double s = apply(x);
-        return s * (1.0 - s);
-    }
+  static inline double apply(double x) { return 1.0 / (1.0 + std::exp(-x)); }
+  static inline double prime(double x) {
+    double s = apply(x);
+    return s * (1.0 - s);
+  }
+  static constexpr double scale = 1.0;
 };
 
 struct Tanh {
-    static inline double apply(double x) { return std::tanh(x); }
-    static inline double prime(double x) {
-        double t = std::tanh(x);
-        return 1.0 - (t * t);
-    }
+  static inline double apply(double x) { return std::tanh(x); }
+  static inline double prime(double x) {
+    double t = std::tanh(x);
+    return 1.0 - (t * t);
+  }
+  static constexpr double scale = 1.0;
 };
 
 class Layer {
 public:
-    virtual ~Layer() = default;
-    virtual void bind(double* params, double* grads) = 0;
-    virtual void forward(const double* input, double* output) = 0;
-    virtual void backward(const double* next_grad, double* prev_grad) = 0;
-    virtual int getInSize() const = 0;
-    virtual int getOutSize() const = 0;
-    virtual int getParamsSize() const = 0;
+  virtual ~Layer() = default;
+  virtual void bind(double *params, double *grads) = 0;
+  virtual void forward(const Eigen::MatrixXd &input, Eigen::MatrixXd &output) = 0;
+  virtual void backward(const Eigen::MatrixXd &next_grad, Eigen::MatrixXd *prev_grad) = 0;
+  virtual int getInSize() const = 0;
+  virtual int getOutSize() const = 0;
+  virtual int getParamsSize() const = 0;
+  virtual double getInitStdDev() const = 0;
 };
 
 template <int In, int Out, typename Activation = Linear>
 class DenseLayer : public Layer {
 private:
-    using VecIn   = Eigen::Matrix<double, In, 1>;
-    using VecOut  = Eigen::Matrix<double, Out, 1>;
+  using MapMatW = Eigen::Map<const Eigen::Matrix<double, Out, In>>;
+  using MapVecB = Eigen::Map<const Eigen::Matrix<double, Out, 1>>;
 
-    using MapMatW = Eigen::Map<const Eigen::Matrix<double, Out, In>>;
-    using MapVecB = Eigen::Map<const Eigen::Matrix<double, Out, 1>>;
-    
-    using MapMatW_Grad = Eigen::Map<Eigen::Matrix<double, Out, In>>;
-    using MapVecB_Grad = Eigen::Map<Eigen::Matrix<double, Out, 1>>;
+  using MapMatW_Grad = Eigen::Map<Eigen::Matrix<double, Out, In>>;
+  using MapVecB_Grad = Eigen::Map<Eigen::Matrix<double, Out, 1>>;
 
-    double* params_ptr = nullptr;
-    double* grads_ptr = nullptr;
+  double *params_ptr = nullptr;
+  double *grads_ptr = nullptr;
 
-    VecIn  input_cache;
-    VecOut z_cache;
+  Eigen::MatrixXd input_cache;
+  Eigen::MatrixXd z_cache;
 
 public:
+  DenseLayer() {}
 
-    DenseLayer() {}
+  int getInSize() const override { return In; }
+  int getOutSize() const override { return Out; }
+  int getParamsSize() const override { return (Out * In) + Out; }
 
-    int getInSize() const override { return In; }
-    int getOutSize() const override { return Out; }
-    int getParamsSize() const override { return (Out * In) + Out; }
+  void bind(double *params, double *grads) override {
+    params_ptr = params;
+    grads_ptr = grads;
+  }
 
-    void bind(double* params, double* grads) override {
-        params_ptr = params;
-        grads_ptr = grads;
+  void forward(const Eigen::MatrixXd &input, Eigen::MatrixXd &output) override {
+    MapMatW W(params_ptr);
+    MapVecB b(params_ptr + (Out * In));
+
+    input_cache = input;
+    z_cache = W * input;
+    z_cache.colwise() += b;
+
+    output = z_cache.unaryExpr([](double v) {
+      return Activation::apply(v);
+    });
+  }
+
+  void backward(const Eigen::MatrixXd &next_grad, Eigen::MatrixXd *prev_grad) override {
+    MapMatW_Grad dW(grads_ptr);
+    MapVecB_Grad db(grads_ptr + (Out * In));
+
+    Eigen::MatrixXd dZ = next_grad.cwiseProduct(
+        z_cache.unaryExpr([](double v) { return Activation::prime(v); }));
+
+    dW.noalias() += dZ * input_cache.transpose();
+    db.noalias() += dZ.rowwise().sum();
+
+    if (prev_grad) {
+      MapMatW W(params_ptr);
+      *prev_grad = W.transpose() * dZ;
     }
+  }
 
-    void forward(const double* input, double* output) override {
-        Eigen::Map<const VecIn> x(input);
-        Eigen::Map<VecOut> y(output);
-        MapMatW W(params_ptr);
-        MapVecB b(params_ptr + (Out * In));
-
-        z_cache = W * x + b;
-        input_cache = x;
-
-        y = z_cache.unaryExpr([](double v) { 
-            return Activation::apply(v); 
-        });
-    }
-
-    void backward(const double* next_grad_ptr, double* prev_grad_ptr) override {
-        Eigen::Map<const VecOut> delta_next(next_grad_ptr);
-        MapMatW_Grad dW(grads_ptr);
-        MapVecB_Grad db(grads_ptr + (Out * In));
-
-        VecOut dZ = delta_next.cwiseProduct(
-            z_cache.unaryExpr([](double v) { return Activation::prime(v); })
-        );
-
-        dW.noalias() += dZ * input_cache.transpose();
-        db.noalias() += dZ;
-
-        if (prev_grad_ptr) {
-            MapMatW W(params_ptr);
-            Eigen::Map<Eigen::Matrix<double, In, 1>> delta_prev(prev_grad_ptr);
-            delta_prev = W.transpose() * dZ;
-        }
-    }
+  double getInitStdDev() const override {
+    return Activation::scale * std::sqrt(1.0 / (double)In);
+  }
 };
