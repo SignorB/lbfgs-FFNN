@@ -96,8 +96,8 @@ public:
             z_cache.unaryExpr([](double v) { return Activation::prime(v); })
         );
 
-        dW += dZ * input_cache.transpose();
-        db += dZ;
+        dW.noalias() += dZ * input_cache.transpose();
+        db.noalias() += dZ;
 
         if (prev_grad_ptr) {
             MapMatW W(params_ptr);

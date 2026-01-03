@@ -1,6 +1,8 @@
 #include "bfgs.hpp"
 #include "network.hpp"
 #include <iostream>
+#include "s_lbfgs.hpp"
+#include "lbfgs.hpp"
 #include <memory>
 #include <vector>
 #include <Eigen/Core>
@@ -24,7 +26,7 @@ int main() {
     inputs.push_back(input);
     targets.push_back(target);
 
-    std::shared_ptr<MinimizerBase<Vec, Mat>> solver = std::make_shared<BFGS<Vec, Mat>>();
+    std::shared_ptr<MinimizerBase<Vec, Mat>> solver = std::make_shared<LBFGS<Vec, Mat>>();
     solver->setMaxIterations(4000);
     solver->setTolerance(1.e-14);
 
