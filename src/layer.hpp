@@ -1,139 +1,108 @@
 #pragma once
 #include "common.hpp"
-#include "minimizer_base.hpp"
 #include <autodiff/reverse/var.hpp>
 #include <autodiff/reverse/var/eigen.hpp>
 #include <Eigen/Core>
 #include <Eigen/src/Core/Map.h>
-#include <memory>
-#include <random>
-#include <vector>
 
-class DenseLayer {
-
-  using WMatT = Eigen::Map<Eigen::Matrix<autodiff::var, Eigen::Dynamic, Eigen::Dynamic>>;
-  using BVecT = Eigen::Map<Eigen::Matrix<autodiff::var, Eigen::Dynamic, 1>>;
-
-private:
-  const unsigned int in;
-  const unsigned int out;
-
-  std::unique_ptr<WMatT> W;
-  std::unique_ptr<BVecT> b;
-  bool isLast = false;
-
-public:
-  DenseLayer(unsigned int _in, unsigned int _out) : in(_in),
-                                                    out(_out) {
-    W = nullptr;
-    b = nullptr;
-  }
-
-  DenseLayer(unsigned int _in, unsigned int _out, bool _isLast) : in(_in),
-                                                                  out(_out) {
-    W = nullptr;
-    b = nullptr;
-    isLast = _isLast;
-  }
-
-  void bindParams(autodiff::var *params) {
-    W = std::make_unique<WMatT>(params, out, in);
-    b = std::make_unique<BVecT>(params + in * out, out);
-  };
-
-  size_t getSize() {
-    return (in * out + out);
-  }
-
-  autodiff::VectorXvar forward(autodiff::VectorXvar &input) {
-    autodiff::VectorXvar x = (*W) * input + (*b);
-    if (isLast)
-      return x;
-    return x.unaryExpr([](const autodiff::var &v) -> autodiff::var {
-      return autodiff::reverse::detail::condition(v > 0.0, v, 0.0);
-    });
-  }
+struct Linear {
+    static inline double apply(double x) { return x; }
+    static inline double prime(double x) { return 1.0; }
 };
 
-class Network {
+struct ReLU {
+    static inline double apply(double x) { return (x > 0.0) ? x : 0.0; }
+    static inline double prime(double x) { return (x > 0.0) ? 1.0 : 0.0; }
+};
+
+struct Sigmoid {
+    static inline double apply(double x) { return 1.0 / (1.0 + std::exp(-x)); }
+    static inline double prime(double x) {
+        double s = apply(x);
+        return s * (1.0 - s);
+    }
+};
+
+struct Tanh {
+    static inline double apply(double x) { return std::tanh(x); }
+    static inline double prime(double x) {
+        double t = std::tanh(x);
+        return 1.0 - (t * t);
+    }
+};
+
+class Layer {
+public:
+    virtual ~Layer() = default;
+    virtual void bind(double* params, double* grads) = 0;
+    virtual void forward(const double* input, double* output) = 0;
+    virtual void backward(const double* next_grad, double* prev_grad) = 0;
+    virtual int getInSize() const = 0;
+    virtual int getOutSize() const = 0;
+    virtual int getParamsSize() const = 0;
+};
+
+template <int In, int Out, typename Activation = Linear>
+class DenseLayer : public Layer {
 private:
-  size_t params_size;
+    using VecIn   = Eigen::Matrix<double, In, 1>;
+    using VecOut  = Eigen::Matrix<double, Out, 1>;
+
+    using MapMatW = Eigen::Map<const Eigen::Matrix<double, Out, In>>;
+    using MapVecB = Eigen::Map<const Eigen::Matrix<double, Out, 1>>;
+    
+    using MapMatW_Grad = Eigen::Map<Eigen::Matrix<double, Out, In>>;
+    using MapVecB_Grad = Eigen::Map<Eigen::Matrix<double, Out, 1>>;
+
+    double* params_ptr = nullptr;
+    double* grads_ptr = nullptr;
+
+    VecIn  input_cache;
+    VecOut z_cache;
 
 public:
-  size_t getSize() {
-    return params_size;
-  }
 
-  Network() {
-    layers = std::vector<DenseLayer>();
-    params_size = 0;
-    params = nullptr;
-  }
+    DenseLayer() {}
 
-  void addLayer(DenseLayer &&layer) {
-    params_size += layer.getSize();
-    layers.push_back(std::move(layer));
-  }
+    int getInSize() const override { return In; }
+    int getOutSize() const override { return Out; }
+    int getParamsSize() const override { return (Out * In) + Out; }
 
-  void bindParams() {
-    params = std::make_unique<autodiff::VectorXvar>(params_size);
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::normal_distribution<double> dist(0.0, 0.5);
-
-    for (int i = 0; i < params_size; ++i) {
-      (*params)(i) = dist(gen);
+    void bind(double* params, double* grads) override {
+        params_ptr = params;
+        grads_ptr = grads;
     }
 
-    size_t offset = 0;
-    for (auto &layer : layers) {
-      layer.bindParams(params->data() + offset);
-      offset += layer.getSize();
-    }
-  }
+    void forward(const double* input, double* output) override {
+        Eigen::Map<const VecIn> x(input);
+        Eigen::Map<VecOut> y(output);
+        MapMatW W(params_ptr);
+        MapVecB b(params_ptr + (Out * In));
 
-  autodiff::VectorXvar forward(autodiff::VectorXvar &input) {
-    autodiff::VectorXvar x = input;
-    for (auto &layer : layers)
-      x = layer.forward(x);
-    return x;
-  }
+        z_cache = W * x + b;
+        input_cache = x;
 
-  void train(std::shared_ptr<MinimizerBase<Eigen::VectorXd, Eigen::MatrixXd>> minimizer_ptr) {
-    autodiff::VectorXvar in1(8);
-    in1 << 0.5, -0.2, 1.0, 0.1, -0.5, 0.8, 0.3, -0.1;
-    autodiff::VectorXvar out1(4);
-    out1 << 1, 2, 3, 4;
-
-    VecFun<autodiff::VectorXvar, autodiff::var> f = [&, this](autodiff::VectorXvar v) -> autodiff::var {
-      for (int i = 0; i < params_size; ++i)
-        (*params)(i) = v(i);
-
-      autodiff::var mse = 0;
-      autodiff::VectorXvar y = this->forward(in1);
-      for (int i = 0; i < out1.size(); ++i) {
-        autodiff::var err = y(i) - out1(i);
-        mse += err * err;
-      }
-      std::cout << "evaluated mse of: " << mse << std::endl;
-      return mse;
-    };
-
-    Eigen::VectorXd params_d(params_size);
-    for (int i = 0; i < params_size; ++i) {
-      params_d(i) = val((*params)(i));
+        y = z_cache.unaryExpr([](double v) { 
+            return Activation::apply(v); 
+        });
     }
 
-    Eigen::VectorXd final_params = minimizer_ptr->solve(params_d, f);
+    void backward(const double* next_grad_ptr, double* prev_grad_ptr) override {
+        Eigen::Map<const VecOut> delta_next(next_grad_ptr);
+        MapMatW_Grad dW(grads_ptr);
+        MapVecB_Grad db(grads_ptr + (Out * In));
 
-    for (int i = 0; i < params_size; ++i) {
-      (*params)(i) = final_params(i);
+        VecOut dZ = delta_next.cwiseProduct(
+            z_cache.unaryExpr([](double v) { return Activation::prime(v); })
+        );
+
+        dW += dZ * input_cache.transpose();
+        db += dZ;
+
+        if (prev_grad_ptr) {
+            MapMatW W(params_ptr);
+            Eigen::Map<Eigen::Matrix<double, In, 1>> delta_prev(prev_grad_ptr);
+            delta_prev = W.transpose() * dZ;
+        }
     }
-    std::cout << "trained in " << minimizer_ptr->iterations() << " iters" << std::endl;
-  }
-
-private:
-  std::vector<DenseLayer> layers;
-  std::unique_ptr<autodiff::VectorXvar> params;
 };

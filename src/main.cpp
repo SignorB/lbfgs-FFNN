@@ -1,36 +1,46 @@
 #include "bfgs.hpp"
-#include "layer.hpp"
-#include <autodiff/reverse/var.hpp>
-#include <autodiff/reverse/var/eigen.hpp>
+#include "network.hpp"
 #include <iostream>
 #include <memory>
-
-using namespace autodiff;
+#include <vector>
+#include <Eigen/Core>
 
 using Vec = Eigen::VectorXd;
 using Mat = Eigen::MatrixXd;
 
 int main() {
-  Network network;
-  network.addLayer(DenseLayer(8, 12));
-  network.addLayer(DenseLayer(12, 4, true));
+    Network network;
+    network.addLayer<8, 12, ReLU>();
+    network.addLayer<12, 4, Linear>();
 
-  network.bindParams();
+    network.bindParams();
 
-  VectorXvar v(8);
-  v << 0.5, -0.2, 1.0, 0.1, -0.5, 0.8, 0.3, -0.1;
+    std::vector<double> input = {0.5, -0.2, 1.0, 0.1, -0.5, 0.8, 0.3, -0.1};
+    std::vector<double> target = {1.0, 2.0, 3.0, 4.0};
 
-  std::shared_ptr<MinimizerBase<Vec, Mat>> solver = std::make_shared<BFGS<Vec, Mat>>();
-  solver->setMaxIterations(4000);
-  solver->setTolerance(1.e-14);
-  int n = network.getSize();
+    std::vector<std::vector<double>> inputs;
+    std::vector<std::vector<double>> targets;
 
-  Mat m(n, n);
-  for (int i = 0; i < n; ++i)
-    m(i, i) = 1;
-  solver->setInitialHessian(m);
+    inputs.push_back(input);
+    targets.push_back(target);
 
-  network.train(solver);
+    std::shared_ptr<MinimizerBase<Vec, Mat>> solver = std::make_shared<BFGS<Vec, Mat>>();
+    solver->setMaxIterations(4000);
+    solver->setTolerance(1.e-14);
 
-  std::cout << network.forward(v) << std::endl;
+    int n = network.getSize();
+    Mat m(n, n);
+    m.setIdentity();
+    solver->setInitialHessian(m);
+
+    network.train(inputs, targets, solver);
+
+    const std::vector<double>& result = network.forward(input);
+
+    for (const auto& val : result) {
+        std::cout << val << " ";
+    }
+    std::cout << std::endl;
+
+    return 0;
 }
