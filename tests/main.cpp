@@ -1,5 +1,5 @@
 #include "test.hpp"
-#include <eigen3/unsupported/Eigen/IterativeSolvers>
+#include <unsupported/Eigen/IterativeSolvers>
 
 #include "../src/bfgs.hpp"
 #include "../src/common.hpp"

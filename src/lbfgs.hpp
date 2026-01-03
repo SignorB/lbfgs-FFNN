@@ -3,7 +3,7 @@
 #include "common.hpp"
 #include "minimizer_base.hpp"
 #include <autodiff/forward/dual.hpp>
-#include <eigen3/Eigen/Eigen>
+#include <Eigen/Eigen>
 
 /**
  * @brief Limited-memory BFGS (L-BFGS) minimizer.

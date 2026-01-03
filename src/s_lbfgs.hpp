@@ -4,7 +4,7 @@
 #include "minimizer_base.hpp"
 
 
-#include <eigen3/Eigen/Eigen>
+#include <Eigen/Eigen>
 #include <autodiff/reverse/var.hpp>
 #include <autodiff/reverse/var/eigen.hpp>
 

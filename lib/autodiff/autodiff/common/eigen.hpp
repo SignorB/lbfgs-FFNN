@@ -102,27 +102,27 @@ struct VectorTraits<Eigen::VectorBlock<VectorType, Size>>
 
 // COMMENTED BY BUZZ, BECAUSE AUTODIFF DOESN'T WORK WITH EIGEN 5.00
 // CAPS LOCK BECAUSE I AM ANGRY
-// #if EIGEN_VERSION_AT_LEAST(3, 3, 90)
+#if EIGEN_VERSION_AT_LEAST(3, 3, 90)
 
-//     template<typename VectorType, typename IndicesType>
-//     struct VectorTraits<Eigen::IndexedView<VectorType, IndicesType, Eigen::internal::SingleRange>>
-//     {
-//         using ValueType = typename PlainType<VectorType>::Scalar;
+    template<typename VectorType, typename IndicesType>
+    struct VectorTraits<Eigen::IndexedView<VectorType, IndicesType, Eigen::internal::SingleRange>>
+    {
+        using ValueType = typename PlainType<VectorType>::Scalar;
 
-//         template<typename NewValueType>
-//         using ReplaceValueType = VectorReplaceValueType<VectorType, NewValueType>;
-//     };
+        template<typename NewValueType>
+        using ReplaceValueType = VectorReplaceValueType<VectorType, NewValueType>;
+    };
 
-//     template<typename VectorType, typename IndicesType>
-//     struct VectorTraits<Eigen::IndexedView<VectorType, Eigen::internal::SingleRange, IndicesType>>
-//     {
-//         using ValueType = typename PlainType<VectorType>::Scalar;
+    template<typename VectorType, typename IndicesType>
+    struct VectorTraits<Eigen::IndexedView<VectorType, Eigen::internal::SingleRange, IndicesType>>
+    {
+        using ValueType = typename PlainType<VectorType>::Scalar;
 
-//         template<typename NewValueType>
-//         using ReplaceValueType = VectorReplaceValueType<VectorType, NewValueType>;
-//     };
+        template<typename NewValueType>
+        using ReplaceValueType = VectorReplaceValueType<VectorType, NewValueType>;
+    };
 
-// #endif
+#endif
 
 template<typename MatrixType>
 struct VectorTraits<Eigen::Ref<MatrixType>>

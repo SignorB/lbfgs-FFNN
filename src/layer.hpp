@@ -3,8 +3,8 @@
 #include "minimizer_base.hpp"
 #include <autodiff/reverse/var.hpp>
 #include <autodiff/reverse/var/eigen.hpp>
-#include <eigen3/Eigen/Core>
-#include <eigen3/Eigen/src/Core/Map.h>
+#include <Eigen/Core>
+#include <Eigen/src/Core/Map.h>
 #include <memory>
 #include <random>
 #include <vector>

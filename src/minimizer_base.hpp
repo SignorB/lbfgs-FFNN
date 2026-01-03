@@ -3,9 +3,9 @@
 #include "common.hpp"
 #include <autodiff/reverse/var.hpp>
 #include <autodiff/reverse/var/eigen.hpp>
-#include <eigen3/Eigen/Cholesky>
-#include <eigen3/Eigen/Eigen>
-#include <eigen3/Eigen/IterativeLinearSolvers>
+#include <Eigen/Cholesky>
+#include <Eigen/Eigen>
+#include <Eigen/IterativeLinearSolvers>
 
 /**
  * @brief Base class for iterative minimization algorithms.

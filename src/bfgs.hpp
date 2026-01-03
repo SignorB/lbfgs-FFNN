@@ -4,7 +4,7 @@
 #include "minimizer_base.hpp"
 #include <autodiff/reverse/var.hpp>
 #include <autodiff/reverse/var/eigen.hpp>
-#include <eigen3/Eigen/Eigen>
+#include <Eigen/Eigen>
 
 template <typename M>
 constexpr bool isSparse = std::is_base_of_v<Eigen::SparseMatrixBase<M>, M>;
