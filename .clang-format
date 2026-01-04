@@ -9,6 +9,6 @@ BraceWrapping:
   AfterExternBlock: false
   BeforeElse: false
   BeforeCatch: false
-# AllowShortIfStatementsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: true
 IndentPPDirectives: BeforeHash
-ColumnLimit: 0
+ColumnLimit: 125
