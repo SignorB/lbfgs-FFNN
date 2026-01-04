@@ -1,12 +1,10 @@
-cmake_minimum_required(VERSION 3.14)
-project(MyProject)
+cmake_minimum_required(VERSION 3.18)
+project(MyProject LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-
-#check compiler optimization also for linker
 include(CheckIPOSupported)
 check_ipo_supported(RESULT result OUTPUT output)
 if(result)
@@ -16,7 +14,14 @@ else()
     message(WARNING "LTO not supported: ${output}")
 endif()
 
-add_compile_options(-O3 -march=native -ffast-math -Wall -Wextra -ftemplate-depth=32768)
+add_compile_options(
+    $<$<COMPILE_LANGUAGE:CXX>:-O3>
+    $<$<COMPILE_LANGUAGE:CXX>:-march=native>
+    $<$<COMPILE_LANGUAGE:CXX>:-ffast-math>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wall>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wextra>
+    $<$<COMPILE_LANGUAGE:CXX>:-ftemplate-depth=32768>
+)
 
 find_package(Eigen3 REQUIRED)
 
@@ -27,10 +32,35 @@ set(AUTODIFF_BUILD_PYTHON OFF CACHE BOOL "" FORCE)
 
 add_subdirectory(lib/autodiff)
 
-add_executable(main_app src/main.cpp)
 add_executable(test_runner tests/main.cpp)
 add_executable(test_runner_autodiff tests/autodiff_tests.cpp)
 add_executable(test_mnist tests/mnist/main.cpp)
+
+set(CXX_TARGETS test_runner test_runner_autodiff test_mnist)
+foreach(TARGET ${CXX_TARGETS})
+    target_link_libraries(${TARGET} PRIVATE autodiff::autodiff Eigen3::Eigen)
+endforeach()
+
+include(CheckLanguage)
+check_language(CUDA)
+
+if(CMAKE_CUDA_COMPILER)
+    enable_language(CUDA)
+    set(CMAKE_CUDA_STANDARD 17)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+    find_package(CUDAToolkit REQUIRED)
+
+    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+        set(CMAKE_CUDA_ARCHITECTURES 86)
+    endif()
+
+    add_executable(test_mnist_cuda tests/mnist/main_cuda.cu)
+    target_link_libraries(test_mnist_cuda PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
+
+    message(STATUS "CUDA compiler found. Enabled test_mnist_cuda.")
+else()
+    message(WARNING "CUDA compiler not found. Skipping .cu sources.")
+endif()
 
 find_package(OpenMP)
 
@@ -41,9 +71,3 @@ if(OpenMP_CXX_FOUND)
 else()
     message(WARNING "OpenMP not found. Eigen will run in single-thread mode.")
 endif()
-
-target_link_libraries(test_mnist PRIVATE autodiff::autodiff Eigen3::Eigen)
-target_link_libraries(main_app PRIVATE autodiff::autodiff Eigen3::Eigen)
-target_link_libraries(test_runner PRIVATE autodiff::autodiff Eigen3::Eigen)
-target_link_libraries(test_runner_autodiff PRIVATE autodiff::autodiff Eigen3::Eigen)
-

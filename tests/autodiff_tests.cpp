@@ -70,8 +70,7 @@ void test_rastrigin(minimizerPtr &solver) {
   // Known global minimum at the origin
   Vec expected_min = Vec::Zero(n);
   double dist = (result - expected_min).norm();
-  Tests::TestSuite<Vec, Mat>::printStatus(f0, f1, g0, g1, dist, expected_min,
-                                          {1e-6, 1e-6, 1e-4});
+  Tests::TestSuite<Vec, Mat>::printStatus(f0, f1, g0, g1, dist, expected_min, {1e-6, 1e-6, 1e-4});
 }
 
 void test_rosenbrock(minimizerPtr &solver) {
@@ -108,8 +107,7 @@ void test_rosenbrock(minimizerPtr &solver) {
 
   Vec expected_min = Vec::Ones(n);
   double dist = (result - expected_min).norm();
-  Tests::TestSuite<Vec, Mat>::printStatus(f0, f1, g0, g1, dist, expected_min,
-                                          {1e-8, 1e-8, 1e-6});
+  Tests::TestSuite<Vec, Mat>::printStatus(f0, f1, g0, g1, dist, expected_min, {1e-8, 1e-8, 1e-6});
 }
 
 void test_ackley(minimizerPtr &solver) {
@@ -149,8 +147,7 @@ void test_ackley(minimizerPtr &solver) {
 
   Vec expected_min = Vec::Zero(n);
   double dist = (result - expected_min).norm();
-  Tests::TestSuite<Vec, Mat>::printStatus(f0, f1, g0, g1, dist, expected_min,
-                                          {1e-3, 1e-6, 1e-2});
+  Tests::TestSuite<Vec, Mat>::printStatus(f0, f1, g0, g1, dist, expected_min, {1e-3, 1e-6, 1e-2});
 }
 
 int main() {
