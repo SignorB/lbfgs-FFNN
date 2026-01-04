@@ -1,23 +1,20 @@
 #pragma once
 
-#include "cublas_handle.cuh"
 #include "device_buffer.cuh"
 #include "kernels.cuh"
-#include "network.cuh"
+#include "optimizer_base.cuh"
 #include <algorithm>
+#include <iostream>
 #include <vector>
 
 namespace cuda_mlp {
 
-class CudaLBFGS {
+class CudaLBFGS : public CudaOptimizer {
 public:
-  explicit CudaLBFGS(CublasHandle &handle) : handle_(handle) {}
-
-  void setMaxIterations(int iters) { max_iters_ = iters; }
-  void setTolerance(double tol) { tol_ = tol; }
+  explicit CudaLBFGS(CublasHandle &handle) : CudaOptimizer(handle) {}
   void setMemory(size_t m) { m_ = m; }
 
-  void solve(CudaNetwork &net, const double *input, const double *target, int batch) {
+  void solve(CudaNetwork &net, const double *input, const double *target, int batch) override {
     const int n = static_cast<int>(net.params_size());
     double *params = net.params_data();
 
@@ -137,10 +134,7 @@ private:
     device_scal(handle_, n, -1.0, p.data());
   }
 
-  CublasHandle &handle_;
-  int max_iters_ = 200;
   int max_line_iters_ = 20;
-  double tol_ = 1e-6;
   size_t m_ = 16;
   double c1_ = 1e-4;
   double rho_ = 0.5;

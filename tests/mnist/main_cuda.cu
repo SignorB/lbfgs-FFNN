@@ -1,11 +1,11 @@
 #include "../../src/cuda/network.cuh"
-#include "../../src/cuda/optimizer.cuh"
+#include "../../src/cuda/optimizer_lbfgs.cuh"
+#include "../../src/simple_config.hpp"
 #include "mnist_loader.hpp"
 #include <Eigen/Core>
 #include <chrono>
 #include <iostream>
 #include <vector>
-#include "../../src/simple_config.hpp"
 using Mat = Eigen::MatrixXd;
 
 namespace {
@@ -68,7 +68,7 @@ void report_results(cuda_mlp::CudaNetwork &network, const cuda_mlp::DeviceBuffer
 } // namespace
 
 int main(int argc, char **argv) {
-  std::string config_path = "config.yaml";
+  std::string config_path = "../config.yaml";
   if (argc > 1) {
     config_path = argv[1];
   }
