@@ -280,7 +280,6 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
     std::vector<V> y_list;        // Hessian action on displacement
     std::vector<double> rho_list; // Scalars ρ_k = 1 / (y_kᵀ s_k)
 
-    //I have verified that set upt this way it generates different sequences of random numbers at each run in minibatch sampling
     int seed=56;
     std::mt19937 rng(seed); 
 
@@ -352,7 +351,6 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
         }
       }
 
-//      std::cout << "variance reduced gradient norm at inner iter " << t << ": " << variance_reduced_gradient.norm() << std::endl;
 
       wt = wt - step_size* lbfgs_two_loop(s_list, y_list, rho_list, variance_reduced_gradient);
 
@@ -375,7 +373,6 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
           u /= static_cast<double>(count);
         }
 
-        // costruisci s,y solo se abbiamo un u precedente
         if (!u_list.empty()) {
           const V &u_prev = u_list.back();
           V s = u - u_prev;
@@ -408,7 +405,6 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
 
         u_list.push_back(u);
       
-      //H= compute_inverse_Hessian(r, s_list, y_list, rho_list, M_param); //this step is done implicitly in the two loop recursion
     }  
   }
 
@@ -420,9 +416,7 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
   if (w_history.size() >= 2) {
     const int max_i = std::min(m - 1, static_cast<int>(w_history.size()) - 2);
     if (max_i >= 0) {
-      // Algorithm 1 (step 18): choose wk+1 = x_i, i in {0,...,m-1}.
-      // In pratica, se m è piccolo, scegliere spesso i=0 resetta il progresso.
-      // Qui evitiamo il reset sistematico preferendo i>=1 quando possibile.
+
       const int min_i = (max_i >= 1) ? 1 : 0;
       std::uniform_int_distribution<int> pick_i(min_i, max_i);
       weights = w_history[static_cast<size_t>(pick_i(rng))];
@@ -430,9 +424,6 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
     }
   }
 
-  // Nota: la scelta random dello step 18 sovrascrive wt.
-  // Per monitorare la convergenza dell'inner loop, la loss va valutata su x_m
-  // (cioè il wt prima dello step 18). Usiamo l'ultimo elemento di w_history.
   const V &x_m = w_history.back();
   double mean_loss = 0.0;
   for (int i = 0; i < N; ++i) {

@@ -56,7 +56,6 @@ int main() {
 	mean_loss0 /= static_cast<double>(N);
 	std::cout << "Initial: Mean Loss = " << mean_loss0 << std::endl;
 
-	// Per questa loss quadratica, il minimizzatore esatto è w* = mean(x)
 	Vec w_star = Vec::Zero(n);
 	for (int i = 0; i < N; ++i) {
 		w_star += x_data[i];
@@ -71,21 +70,19 @@ int main() {
 
 	Vec current_weights = weights;
 
-	// Stage 1: step size grande
 	{
 		SLBFGS<Vec, Mat, Vec> solver;
 		solver.setMaxIterations(max_iters);
 		solver.setTolerance(1e-8);
 		current_weights = solver.stochastic_solve(x_data, current_weights, loss, grad, m, M_param, L, b, b_H, 0.1, N, true, 50);
 	}
-	// Stage 2: step size medio
 	{
 		SLBFGS<Vec, Mat, Vec> solver;
 		solver.setMaxIterations(max_iters);
 		solver.setTolerance(1e-8);
 		current_weights = solver.stochastic_solve(x_data, current_weights, loss, grad, m, M_param, L, b, b_H, 0.05, N, false);
 	}
-	// Stage 3: step size piccolo
+
 	{
 		SLBFGS<Vec, Mat, Vec> solver;
 		solver.setMaxIterations(max_iters * 2);
