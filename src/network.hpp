@@ -6,6 +6,7 @@
 #include <random>
 #include <vector>
 #include "minimizer_base.hpp"
+#include "s_lbfgs.hpp"
 #include <iostream>
 
 class Network {
@@ -160,5 +161,58 @@ public:
     std::cout << "Accuracy: " << accuracy << "% (" << correct << "/" << total << ")" << std::endl;
     std::cout << "Total MSE: " << mse << std::endl;
     std::cout << "====================" << std::endl;
+  }
+
+
+  void train_stochastic(const Eigen::MatrixXd &inputs,
+                        const Eigen::MatrixXd &targets,
+                        std::shared_ptr<SLBFGS<Eigen::VectorXd, Eigen::MatrixXd>> minimizer,
+                        int m, int M_param, int L, int b, int b_H, double step_size,
+                        bool verbose = false, int print_every = 50) {
+    using Vec = Eigen::VectorXd;
+
+    std::vector<Vec> train_inputs;
+    std::vector<Vec> train_targets;
+    for (int i = 0; i < inputs.cols(); ++i) {
+      train_inputs.push_back(inputs.col(i));
+      train_targets.push_back(targets.col(i));
+    }
+
+    Vec weights(params_size);
+    std::copy(params.begin(), params.end(), weights.data());
+
+    auto f_stochastic = [&](const Vec &w, const Vec &input, const Vec &target) -> double {
+      this->setParams(w);
+      Eigen::MatrixXd input_mat(input.size(), 1);
+      input_mat.col(0) = input;
+      const auto &output = this->forward(input_mat);
+      Vec diff = output.col(0) - target;
+      return 0.5 * diff.squaredNorm();
+    };
+
+    auto g_stochastic = [&](const Vec &w, const Vec &input, const Vec &target, Vec &grad) {
+      this->setParams(w);
+      this->zeroGrads();
+
+      Eigen::MatrixXd input_mat(input.size(), 1);
+      input_mat.col(0) = input;
+      const auto &output = this->forward(input_mat);
+      Eigen::MatrixXd loss_grad(target.size(), 1);
+      loss_grad.col(0) = output.col(0) - target;
+
+      this->backward(loss_grad);
+
+      this->getGrads(grad);
+    };
+
+    // Set data and params on minimizer
+    minimizer->setData(train_inputs, train_targets, f_stochastic, g_stochastic);
+    minimizer->setStochasticParams(m, M_param, L, b, b_H, step_size);
+
+    VecFun<Vec, double> f_placeholder = [](const Vec &) -> double { return 0.0; };
+    GradFun<Vec> g_placeholder = [&](const Vec &) -> Vec { return Vec::Zero(params_size); };
+
+    Vec final_weights = minimizer->solve(weights, f_placeholder, g_placeholder);
+    this->setParams(final_weights);
   }
 };

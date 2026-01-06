@@ -70,6 +70,26 @@ public:
    * @param hessFun Function object returning the Hessian matrix.
    */
   void setHessian(const HessFun<V, M> &hessFun) noexcept { _hessFun = hessFun; }
+
+  /**
+   * @brief Set stochastic parameters (for stochastic solvers like SLBFGS).
+   *
+   * @param stochastic_m Number of minibatches per epoch.
+   * @param M_param Memory parameter for curvature pairs.
+   * @param L Frequency of Hessian updates.
+   * @param b Gradient minibatch size.
+   * @param b_H Hessian minibatch size.
+   * @param step_size Step size for updates.
+   */
+  void setStochasticParams(int stochastic_m, int M_param, int L, int b, int b_H, double step_size) noexcept {
+    this->stochastic_m = stochastic_m;
+    this->M_param = M_param;
+    this->L = L;
+    this->b = b;
+    this->b_H = b_H;
+    this->step_size = step_size;
+  }
+
   /**
    * @brief Solve the minimization problem given an initial guess.
    *
@@ -143,6 +163,14 @@ protected:
 
   /// Contraction factor used when shrinking the step size.
   double rho = 0.5;
+
+  // Stochastic parameters
+  int stochastic_m = 10; // number of minibatches per epoch
+  int M_param = 10; // memory parameter
+  int L = 10; // frequency of Hessian updates
+  int b = 20; // gradient minibatch size
+  int b_H = 200; // Hessian minibatch size
+  double step_size = 0.01; // step size
 
   /**
    * @brief Perform a line search to find a suitable step length alpha.

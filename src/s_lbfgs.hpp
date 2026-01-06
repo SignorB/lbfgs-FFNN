@@ -25,25 +25,46 @@
  * @tparam V Vector type (e.g., Eigen::VectorXd).
  * @tparam M Matrix type (e.g., Eigen::MatrixXd).
  */
-template <typename V, typename M,typename D>
+template <typename V, typename M>
 class SLBFGS : public MinimizerBase<V, M> {
   using Base = MinimizerBase<V, M>;
   using Base::_iters;
   using Base::_max_iters;
   using Base::_tol;
+  using Base::stochastic_m;
+  using Base::M_param;
+  using Base::L;
+  using Base::b;
+  using Base::b_H;
+  using Base::step_size;
 //  using Base::alpha_wolfe;
   using Base::m;
 
 
 
-using S_VecFun=std::function<double(const V&,const D& )>; //loss function must take weights and data as input and returns a double
-using S_GradFun=std::function<void(const V&,const D&, V& grad )>; //gradient function must take weights and data as input and returns a vector
+using S_VecFun=std::function<double(const V&, const V&, const V&)>; //loss function must take weights, input, and target as input and returns a double
+using S_GradFun=std::function<void(const V&, const V&, const V&, V&)>; //gradient function must take weights, input, target as input and returns a vector
 
 
 public:
-  V stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,const S_GradFun &S_GradFun, int m, int M_param, int L, int b, int b_H, double step_size, int N, bool verbose=false, int print_every=50);
+  V solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient) override {
+    return stochastic_solve(_inputs, _targets, x, _sf, _sg, stochastic_m, M_param, L, b, b_H, step_size, static_cast<int>(_inputs.size()), false, 50);
+  };
+  V stochastic_solve(std::vector<V> inputs, std::vector<V> targets, V weights,const S_VecFun &f,const S_GradFun &S_GradFun, int m, int M_param, int L, int b, int b_H, double step_size, int N, bool verbose=false, int print_every=50);
   static std::vector<size_t> sample_minibatch_indices(const size_t N, size_t batch_size, std::mt19937 &rng);
-  V solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient) override;
+
+  void setData(const std::vector<V> &inputs, const std::vector<V> &targets, const S_VecFun &f, const S_GradFun &g) {
+    _inputs = inputs;
+    _targets = targets;
+    _sf = f;
+    _sg = g;
+  }
+
+private:
+  std::vector<V> _inputs;
+  std::vector<V> _targets;
+  S_VecFun _sf;
+  S_GradFun _sg;
 
 };
 
@@ -56,8 +77,8 @@ public:
   * @param rng Random number generator.
   */
 
-template <typename V, typename M, typename D>
-std::vector<size_t> SLBFGS<V,M,D>:: sample_minibatch_indices(const size_t N, size_t batch_size, std::mt19937 &rng){  
+template <typename V, typename M>
+std::vector<size_t> SLBFGS<V,M>:: sample_minibatch_indices(const size_t N, size_t batch_size, std::mt19937 &rng){  
     
     if (N == 0 || batch_size == 0) {
         std::cerr << "Warning: sampling minibatch from empty dataset or with batch_size=0." << std::endl;
@@ -85,15 +106,6 @@ std::vector<size_t> SLBFGS<V,M,D>:: sample_minibatch_indices(const size_t N, siz
     return idx;
     }
 
-
-template <typename V, typename M, typename D>
-  V SLBFGS<V,M,D>::solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient){
-    // Implementation of the standard (non-stochastic) L-BFGS solve method
-    // This can be left unimplemented if only stochastic_solve is needed
-    return x;
-  };
-
-
   
 
 /**
@@ -104,8 +116,8 @@ template <typename V, typename M, typename D>
  * @param x Point at which to evaluate the Hessian.
  * @param v Vector to multiply with the Hessian.
  */
-template <typename Func,typename V, typename D>
-Eigen::VectorXd hessian_vector_product(Func &f, const V &weights ,const D &x, const V &v) {
+template <typename Func,typename V>
+Eigen::VectorXd hessian_vector_product(Func &f, const V &weights ,const V &input, const V &target, const V &v) { //todo, doesnt work. Autodiff problem
     using autodiff::VectorXvar;
     using autodiff::var;
 
@@ -121,7 +133,7 @@ Eigen::VectorXd hessian_vector_product(Func &f, const V &weights ,const D &x, co
     }
 
 
-    var loss= f(w_var);
+    var loss= f(w_var, input, target);
 
     VectorXvar grad = autodiff::gradient(loss, w_var);
 
@@ -147,23 +159,24 @@ Eigen::VectorXd hessian_vector_product(Func &f, const V &weights ,const D &x, co
   *
   * @param g Gradient function for which to compute the Hessian-vector product.
   * @param weights Point at which to evaluate the Hessian.
-  * @param x Data point (if needed by f).
+  * @param input Input data point.
+  * @param target Target data point.
   * @param v direction vector to multiply with the Hessian. 
   * @param epsilon Finite difference step size.
   * @return Hessian-vector product H*v.
   */  
 
-  //g is expected to be a function which takes weights and data as input and returns the gradient in the third argument
-template<typename Func,typename V,typename D>
-V finite_difference_hvp(Func &g, const V &weights, const V &v, const D &x, double epsilon = 1e-8) {
+  //g is expected to be a function which takes weights, input, target as input and returns the gradient in the fourth argument
+template<typename Func,typename V>
+V finite_difference_hvp(Func &g, const V &weights, const V &input, const V &target, const V &v, double epsilon = 1e-8) {
     V w_plus = weights + epsilon * v;
     V w_minus = weights - epsilon * v;
 
     V grad_plus = V::Zero(weights.size());
     V grad_minus = V::Zero(weights.size());
     
-    g(w_plus, x, grad_plus);
-    g(w_minus, x, grad_minus);
+    g(w_plus, input, target, grad_plus);
+    g(w_minus, input, target, grad_minus);
     return (grad_plus - grad_minus) / (2.0 * epsilon);
 }
 
@@ -249,11 +262,13 @@ Eigen::MatrixXd compute_inverse_Hessian(int r, const std::vector<V> &s_list, con
    * @brief Perform the S-LBFGS optimization on the objective function f.
    *
    *
-   * @param x Initial guess for the minimizer (passed by value).
-   * @param f Objective function to minimize, mapping V → double.
-   * @param Gradient Function returning the gradient ∇f(w,x), mapping (V,w) → V.
+   * @param inputs Vector of input data points.
+   * @param targets Vector of target data points.
+   * @param weights Initial weights.
+   * @param f Objective function to minimize, mapping (V, V, V) → double.
+   * @param S_GradFun Function returning the gradient ∇f(w, input, target), mapping (V, V, V) → V.
    * @param m Memory parameter: number of curvature pairs to store.
-   * @param M_param THe number of pair vectors (sj,yj) to use for the Hessian update.
+   * @param M_param The number of pair vectors (sj,yj) to use for the Hessian update.
    * @param L The frequency of Hessian updates: every L iterations a new estimate of the Hessian is computed L=10 in the reference paper.
    * @param b Mini-batch size for stochastic gradient estimation.
    * @param b_H Mini-batch size for stochastic Hessian-vector product estimation. 10/20* b is suggested in the reference paper.
@@ -266,14 +281,10 @@ Eigen::MatrixXd compute_inverse_Hessian(int r, const std::vector<V> &s_list, con
    * 
    * @return The final estimate of the minimizer.
    */
-
-
-
-template <typename V, typename M, typename D>
-V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,const S_GradFun &S_GradFun, int m, int M_param, int L, int b, int b_H, double step_size, int N, bool verbose, int print_every) {
+template <typename V, typename M>
+V SLBFGS<V,M>::stochastic_solve(std::vector<V> inputs, std::vector<V> targets, V weights,const S_VecFun &f,const S_GradFun &S_GradFun, int m, int M_param, int L, int b, int b_H, double step_size, int N, bool verbose, int print_every) {
     int r=0;
     
-    M H = M::Identity(x.size(), x.size()); //initialize H as identity
 
     std::vector<V> u_list;       //stored iterates for Hessian update
     std::vector<V> s_list;        // displacement u_r − u_r-1
@@ -287,19 +298,21 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
 
     V wt = weights;
 
+    // Only keep the last L+1 iterates for averaging, not all history
     std::vector<V> w_history;
+    w_history.reserve(static_cast<size_t>(L + 1));
 
     while (_iters < _max_iters) { //convergence check based on gradient norm after computing the full gradient
      
 
-    w_history.clear();
+      w_history.clear();
       // Sample minibatch for gradient estimation
     V full_gradient = V::Zero(dim_weights);
     V temp_gradient= V::Zero(dim_weights);
 
-    for (size_t i=0; i < N; ++i) {
-      temp_gradient= V::Zero(dim_weights);
-      S_GradFun(weights, x[i], temp_gradient);
+    for (int i=0; i < N; ++i) {
+      temp_gradient.setZero();
+      S_GradFun(weights, inputs[i], targets[i], temp_gradient);
       full_gradient += temp_gradient;
     }
 
@@ -330,11 +343,11 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
       
       for (size_t i=0; i < minibatch_indices.size(); ++i) {
         size_t idx = minibatch_indices[i];
-        temp_grad_estimate_wt= V::Zero(dim_weights);
-        temp_grad_estimate_wk= V::Zero(dim_weights);
-        S_GradFun(wt, x[idx], temp_grad_estimate_wt);
+        temp_grad_estimate_wt.setZero();
+        temp_grad_estimate_wk.setZero();
+        S_GradFun(wt, inputs[idx], targets[idx], temp_grad_estimate_wt);
         grad_estimate_wt += temp_grad_estimate_wt;
-        S_GradFun(weights, x[idx], temp_grad_estimate_wk);
+        S_GradFun(weights, inputs[idx], targets[idx], temp_grad_estimate_wk);
         grad_estimate_wk += temp_grad_estimate_wk;
       }
     
@@ -348,7 +361,7 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
         if (should_print) {
           double mean_loss_t = 0.0;
           for (int i = 0; i < N; ++i) {
-            mean_loss_t += f(wt, x[static_cast<size_t>(i)]);
+            mean_loss_t += f(wt, inputs[static_cast<size_t>(i)], targets[static_cast<size_t>(i)]);
           }
           mean_loss_t /= static_cast<double>(N);
           std::cout << "  [epoch 1] t=" << t
@@ -360,7 +373,10 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
 
       wt = wt - step_size* lbfgs_two_loop(s_list, y_list, rho_list, variance_reduced_gradient);
 
-
+      // Only keep last L+1 iterates to limit memory usage
+      if (w_history.size() >= static_cast<size_t>(L + 1)) {
+        w_history.erase(w_history.begin());
+      }
       w_history.push_back(wt);
 
       if (t%L==0 && t>0){
@@ -370,13 +386,11 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
         
         V u = V::Zero(dim_weights);
         const int num_wt = static_cast<int>(w_history.size());
-        const int start = std::max(0, num_wt - L);
-        const int count = num_wt - start;
-        for (int j = start; j < num_wt; ++j) {
+        for (int j = 0; j < num_wt; ++j) {
           u += w_history[static_cast<size_t>(j)];
         }
-        if (count > 0) {
-          u /= static_cast<double>(count);
+        if (num_wt > 0) {
+          u /= static_cast<double>(num_wt);
         }
 
         if (!u_list.empty()) {
@@ -388,7 +402,7 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
           V y = V::Zero(dim_weights);
           for (size_t i = 0; i < minibatch_indices_H.size(); ++i) {
             const size_t idx = minibatch_indices_H[i];
-            y += finite_difference_hvp(S_GradFun, u, s, x[idx]);
+            y += finite_difference_hvp(S_GradFun, u, inputs[idx], targets[idx], s);
           }
           if (!minibatch_indices_H.empty()) {
             y /= static_cast<double>(minibatch_indices_H.size());
@@ -409,6 +423,10 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
           rho_list.erase(rho_list.begin());
         }
 
+        // Only keep last few u values needed
+        if (u_list.size() >= static_cast<size_t>(M_param + 1)) {
+          u_list.erase(u_list.begin());
+        }
         u_list.push_back(u);
       
     }  
@@ -420,20 +438,15 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
 
 
   if (w_history.size() >= 2) {
-    const int max_i = std::min(m - 1, static_cast<int>(w_history.size()) - 2);
-    if (max_i >= 0) {
-
-      const int min_i = (max_i >= 1) ? 1 : 0;
-      std::uniform_int_distribution<int> pick_i(min_i, max_i);
-      weights = w_history[static_cast<size_t>(pick_i(rng))];
-      wt = weights;
-    }
+    std::uniform_int_distribution<size_t> pick_i(0, w_history.size() - 2);
+    weights = w_history[pick_i(rng)];
+    wt = weights;
   }
 
   const V &x_m = w_history.back();
   double mean_loss = 0.0;
   for (int i = 0; i < N; ++i) {
-    mean_loss += f(x_m, x[static_cast<size_t>(i)]);
+    mean_loss += f(x_m, inputs[static_cast<size_t>(i)], targets[static_cast<size_t>(i)]);
   }
   mean_loss /= static_cast<double>(N);
   std::cout << "Iteration " << (_iters + 1) << ": Mean Loss = " << mean_loss << std::endl;

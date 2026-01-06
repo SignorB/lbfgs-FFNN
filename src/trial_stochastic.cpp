@@ -8,43 +8,42 @@
 
 using Vec = Eigen::VectorXd;
 using Mat = Eigen::MatrixXd;
-using D=Vec; // could be any data structure, used Vec for simplicity
 
 
 // Funzione di loss quadratica: f(w, x) = 0.5 * ||w - x||^2
-double loss_fun(const Vec& w, const D& x) {
+double loss_fun(const Vec& w, const Vec& x) {
 	return 0.5 * (w - x).squaredNorm();
 }
 
 // Gradiente della loss rispetto a w: grad = w - x
-void grad_fun(const Vec& w, const D& x, Vec& grad) {
+void grad_fun(const Vec& w, const Vec& x, Vec& grad) {
 	grad = w - x;
 }
 
 // Funzione di loss L1: f(w, x) = ||w - x||_1
-double loss_fun_l1(const Vec& w, const D& x) {
+double loss_fun_l1(const Vec& w, const Vec& x) {
 	return (w - x).lpNorm<1>();
 }
 
 // Gradiente della loss L1 rispetto a w: grad = sign(w - x)
-void grad_fun_l1(const Vec& w, const D& x, Vec& grad) {
+void grad_fun_l1(const Vec& w, const Vec& x, Vec& grad) {
 	grad = (w - x).cwiseSign();
 }
 
 // Funzione di loss quadratica con regolarizzazione L2: f(w, x) = 0.5 * ||w - x||^2 + (lambda / N) * ||w||^2
-double loss_fun_reg(const Vec& w, const D& x, double lambda, int N) {
+double loss_fun_reg(const Vec& w, const Vec& x, double lambda, int N) {
 	return 0.5 * (w - x).squaredNorm() + (lambda / N) * w.squaredNorm();
 }
 
 // Gradiente della loss con regolarizzazione L2 rispetto a w: grad = w - x + (2 * lambda / N) * w
-void grad_fun_reg(const Vec& w, const D& x, Vec& grad, double lambda, int N) {
+void grad_fun_reg(const Vec& w, const Vec& x, Vec& grad, double lambda, int N) {
 	grad = w - x + (2.0 * lambda / N) * w;
 }
 
-int main() {
+int main(void) {
 
-	int n = 1000; // dimensione dei vettori
-	int N = 2020; // numero di dati
+	int n = 1097; // dimensione dei vettori
+	int N = 2025; // numero di dati
 	int M_param = 10, L = 10, b = 20, b_H = 10;
 	int m=N/b; 
 	double step_size = 0.01;
@@ -52,7 +51,7 @@ int main() {
 	// generatore dati casuali
 	std::vector<Vec> x_data(N);
 	std::mt19937 rng(12);
-	std::normal_distribution<double> dist(0.0, 4.0);
+	std::uniform_real_distribution<double> dist(0.0, 4.0);
 	for (int i = 0; i < N; ++i) {
 		x_data[i] = Vec::NullaryExpr(n, [&]() { return dist(rng); });
 	}
@@ -89,10 +88,23 @@ int main() {
 	Vec current_weights = weights;
 
 	{
-		SLBFGS<Vec, Mat, Vec> solver;
+		SLBFGS<Vec, Mat> solver;
 		solver.setMaxIterations(max_iters);
 		solver.setTolerance(1e-8);
-		current_weights = solver.stochastic_solve(x_data, current_weights, loss, grad, m, M_param, L, b, b_H, 0.1, N, false, 50);
+		std::vector<Vec> inputs = x_data; // Since input is not used, set to x_data
+		std::vector<Vec> targets = x_data; // Target is x_data
+		auto f = [&](const Vec &w, const Vec &input, const Vec &target) -> double {
+			return loss(w, target);
+		};
+		auto g = [&](const Vec &w, const Vec &input, const Vec &target, Vec &grad) {
+			grad_fun_reg(w, target, grad, 0.1, N);
+		};
+		solver.setData(inputs, targets, f, g);
+		solver.setStochasticParams(m, M_param, L, b, b_H, 0.1);
+		// Dummy f and g for base class compatibility
+		VecFun<Vec, double> dummy_f = [&](Vec w) { return 0.0; };
+		GradFun<Vec> dummy_g = [&](Vec w) { return Vec::Zero(w.size()); };
+		current_weights = solver.solve(current_weights, dummy_f, dummy_g);  // Now uses stochastic_solve internally
 	}
 
 	if (n<25)
