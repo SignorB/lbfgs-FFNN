@@ -41,7 +41,7 @@ using S_GradFun=std::function<void(const V&,const D&, V& grad )>; //gradient fun
 
 
 public:
-  V stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,const S_GradFun &S_GradFun, int m, int M_param, int L, int b, int b_H, double step_size, int N);
+  V stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,const S_GradFun &S_GradFun, int m, int M_param, int L, int b, int b_H, double step_size, int N, bool verbose=false, int print_every=50);
   static std::vector<size_t> sample_minibatch_indices(const size_t N, size_t batch_size, std::mt19937 &rng);
   V solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient) override;
 
@@ -270,7 +270,7 @@ Eigen::MatrixXd compute_inverse_Hessian(int r, const std::vector<V> &s_list, con
 
 
 template <typename V, typename M, typename D>
-V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,const S_GradFun &S_GradFun, int m, int M_param, int L, int b, int b_H, double step_size, int N) {
+V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,const S_GradFun &S_GradFun, int m, int M_param, int L, int b, int b_H, double step_size, int N, bool verbose, int print_every) {
     int r=0;
     
     M H = M::Identity(x.size(), x.size()); //initialize H as identity
@@ -309,6 +309,8 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
     wt = weights;
     w_history.push_back(wt);
     V variance_reduced_gradient = V::Zero(dim_weights);
+
+    const bool verbose_this_epoch = verbose && (_iters == 0);
     
 
     for (int t=0; t < m ; ++t){
@@ -335,6 +337,20 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
       grad_estimate_wk /= b;
 
       variance_reduced_gradient = (grad_estimate_wt - grad_estimate_wk) + full_gradient;
+
+      if (verbose_this_epoch) {
+        const bool should_print = (t < 5) || (print_every > 0 && (t % print_every == 0)) || (t == m - 1);
+        if (should_print) {
+          double mean_loss_t = 0.0;
+          for (int i = 0; i < N; ++i) {
+            mean_loss_t += f(wt, x[static_cast<size_t>(i)]);
+          }
+          mean_loss_t /= static_cast<double>(N);
+          std::cout << "  [epoch 1] t=" << t
+                    << "  ||v_t||=" << variance_reduced_gradient.norm()
+                    << "  mean_loss(w_t)=" << mean_loss_t << std::endl;
+        }
+      }
 
 //      std::cout << "variance reduced gradient norm at inner iter " << t << ": " << variance_reduced_gradient.norm() << std::endl;
 
@@ -404,15 +420,23 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
   if (w_history.size() >= 2) {
     const int max_i = std::min(m - 1, static_cast<int>(w_history.size()) - 2);
     if (max_i >= 0) {
-      std::uniform_int_distribution<int> pick_i(0, max_i);
+      // Algorithm 1 (step 18): choose wk+1 = x_i, i in {0,...,m-1}.
+      // In pratica, se m è piccolo, scegliere spesso i=0 resetta il progresso.
+      // Qui evitiamo il reset sistematico preferendo i>=1 quando possibile.
+      const int min_i = (max_i >= 1) ? 1 : 0;
+      std::uniform_int_distribution<int> pick_i(min_i, max_i);
       weights = w_history[static_cast<size_t>(pick_i(rng))];
       wt = weights;
     }
   }
 
-    double mean_loss = 0.0;
+  // Nota: la scelta random dello step 18 sovrascrive wt.
+  // Per monitorare la convergenza dell'inner loop, la loss va valutata su x_m
+  // (cioè il wt prima dello step 18). Usiamo l'ultimo elemento di w_history.
+  const V &x_m = w_history.back();
+  double mean_loss = 0.0;
   for (int i = 0; i < N; ++i) {
-    mean_loss += f(weights, x[static_cast<size_t>(i)]);
+    mean_loss += f(x_m, x[static_cast<size_t>(i)]);
   }
   mean_loss /= static_cast<double>(N);
   std::cout << "Iteration " << (_iters + 1) << ": Mean Loss = " << mean_loss << std::endl;

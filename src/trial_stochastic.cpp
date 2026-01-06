@@ -42,21 +42,56 @@ int main() {
 	// Inizializza i pesi casualmente
 	Vec weights = Vec::NullaryExpr(n, [&]() { return dist(rng); });
 
-    int max_iters = 20;
-	
-	SLBFGS<Vec, Mat, Vec> solver;
-	solver.setMaxIterations(max_iters);
-	solver.setTolerance(1e-8);
+	int max_iters = 20;
 
 
 	auto loss = [](const Vec& w, const Vec& x) { return loss_fun(w, x); };
 	auto grad = [](const Vec& w, const Vec& x, Vec& g) { grad_fun(w, x, g); };
 
-	Vec current_weights = solver.stochastic_solve(x_data, weights, loss, grad, m, M_param, L, b, b_H, 0.1, N);
-	solver.setMaxIterations(max_iters*2);
-	 current_weights = solver.stochastic_solve(x_data, weights, loss, grad, m, M_param, L, b, b_H, 0.05, N);
-	 solver.setMaxIterations(max_iters*4);
-	 current_weights = solver.stochastic_solve(x_data, weights, loss, grad, m, M_param, L, b, b_H, 0.01, N);
+	// Loss iniziale (baseline)
+	double mean_loss0 = 0.0;
+	for (int i = 0; i < N; ++i) {
+		mean_loss0 += loss(weights, x_data[i]);
+	}
+	mean_loss0 /= static_cast<double>(N);
+	std::cout << "Initial: Mean Loss = " << mean_loss0 << std::endl;
+
+	// Per questa loss quadratica, il minimizzatore esatto è w* = mean(x)
+	Vec w_star = Vec::Zero(n);
+	for (int i = 0; i < N; ++i) {
+		w_star += x_data[i];
+	}
+	w_star /= static_cast<double>(N);
+	double mean_loss_star = 0.0;
+	for (int i = 0; i < N; ++i) {
+		mean_loss_star += loss(w_star, x_data[i]);
+	}
+	mean_loss_star /= static_cast<double>(N);
+	std::cout << "Theoretical optimum (w*=mean(x)): Mean Loss = " << mean_loss_star << std::endl;
+
+	Vec current_weights = weights;
+
+	// Stage 1: step size grande
+	{
+		SLBFGS<Vec, Mat, Vec> solver;
+		solver.setMaxIterations(max_iters);
+		solver.setTolerance(1e-8);
+		current_weights = solver.stochastic_solve(x_data, current_weights, loss, grad, m, M_param, L, b, b_H, 0.1, N, true, 50);
+	}
+	// Stage 2: step size medio
+	{
+		SLBFGS<Vec, Mat, Vec> solver;
+		solver.setMaxIterations(max_iters);
+		solver.setTolerance(1e-8);
+		current_weights = solver.stochastic_solve(x_data, current_weights, loss, grad, m, M_param, L, b, b_H, 0.05, N, false);
+	}
+	// Stage 3: step size piccolo
+	{
+		SLBFGS<Vec, Mat, Vec> solver;
+		solver.setMaxIterations(max_iters * 2);
+		solver.setTolerance(1e-8);
+		current_weights = solver.stochastic_solve(x_data, current_weights, loss, grad, m, M_param, L, b, b_H, 0.01, N, false);
+	}
 
 
 	std::cout << "Risultato ottimizzazione (w):\n" << current_weights.transpose() << std::endl;
