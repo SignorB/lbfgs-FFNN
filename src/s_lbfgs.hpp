@@ -289,8 +289,9 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
 
     std::vector<V> w_history;
 
-    while (_iters < _max_iters) { //todo add convergence check 
-    
+    while (_iters < _max_iters) { //convergence check based on gradient norm after computing the full gradient
+     
+
     w_history.clear();
       // Sample minibatch for gradient estimation
     V full_gradient = V::Zero(dim_weights);
@@ -304,7 +305,12 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
 
     full_gradient /= N; // 1/N sum g_i(weights)
 
-  
+    if (full_gradient.norm()<_tol){
+      std::cout<<"Converged: gradient norm "<<full_gradient.norm()<<" below tolerance "<<_tol<<std::endl;
+      break;
+    }
+
+
     wt = weights;
     w_history.push_back(wt);
     V variance_reduced_gradient = V::Zero(dim_weights);
@@ -431,7 +437,6 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
   }
   mean_loss /= static_cast<double>(N);
   std::cout << "Iteration " << (_iters + 1) << ": Mean Loss = " << mean_loss << std::endl;
-
 
 
 

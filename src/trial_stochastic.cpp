@@ -21,14 +21,32 @@ void grad_fun(const Vec& w, const D& x, Vec& grad) {
 	grad = w - x;
 }
 
-auto loss = [](const Vec& w, const D& x) { return loss_fun(w, x); };
-auto grad = [](const Vec& w, const D& x, Vec& g) { grad_fun(w, x, g); };
+// Funzione di loss L1: f(w, x) = ||w - x||_1
+double loss_fun_l1(const Vec& w, const D& x) {
+	return (w - x).lpNorm<1>();
+}
+
+// Gradiente della loss L1 rispetto a w: grad = sign(w - x)
+void grad_fun_l1(const Vec& w, const D& x, Vec& grad) {
+	grad = (w - x).cwiseSign();
+}
+
+// Funzione di loss quadratica con regolarizzazione L2: f(w, x) = 0.5 * ||w - x||^2 + (lambda / N) * ||w||^2
+double loss_fun_reg(const Vec& w, const D& x, double lambda, int N) {
+	return 0.5 * (w - x).squaredNorm() + (lambda / N) * w.squaredNorm();
+}
+
+// Gradiente della loss con regolarizzazione L2 rispetto a w: grad = w - x + (2 * lambda / N) * w
+void grad_fun_reg(const Vec& w, const D& x, Vec& grad, double lambda, int N) {
+	grad = w - x + (2.0 * lambda / N) * w;
+}
 
 int main() {
 
-	int n = 10; // dimensione dei vettori
-	int N = 209; // numero di dati
-	int m = 2*N, M_param = 10, L = 10, b = 20, b_H = 10;
+	int n = 1000; // dimensione dei vettori
+	int N = 2020; // numero di dati
+	int M_param = 10, L = 10, b = 20, b_H = 10;
+	int m=N/b; 
 	double step_size = 0.01;
 
 	// generatore dati casuali
@@ -45,8 +63,8 @@ int main() {
 	int max_iters = 20;
 
 
-	auto loss = [](const Vec& w, const Vec& x) { return loss_fun(w, x); };
-	auto grad = [](const Vec& w, const Vec& x, Vec& g) { grad_fun(w, x, g); };
+	auto loss = [&](const Vec& w, const Vec& x) { return loss_fun_reg(w, x, 0.1, N); };
+	auto grad = [&](const Vec& w, const Vec& x, Vec& g) { grad_fun_reg(w, x, g, 0.1, N); };
 
 	// Loss iniziale (baseline)
 	double mean_loss0 = 0.0;
@@ -66,7 +84,7 @@ int main() {
 		mean_loss_star += loss(w_star, x_data[i]);
 	}
 	mean_loss_star /= static_cast<double>(N);
-	std::cout << "Theoretical optimum (w*=mean(x)): Mean Loss = " << mean_loss_star << std::endl;
+	std::cout << "Theoretical optimum for the quadratic loss: Mean Loss = " << mean_loss_star << std::endl;
 
 	Vec current_weights = weights;
 
@@ -74,23 +92,10 @@ int main() {
 		SLBFGS<Vec, Mat, Vec> solver;
 		solver.setMaxIterations(max_iters);
 		solver.setTolerance(1e-8);
-		current_weights = solver.stochastic_solve(x_data, current_weights, loss, grad, m, M_param, L, b, b_H, 0.1, N, true, 50);
-	}
-	{
-		SLBFGS<Vec, Mat, Vec> solver;
-		solver.setMaxIterations(max_iters);
-		solver.setTolerance(1e-8);
-		current_weights = solver.stochastic_solve(x_data, current_weights, loss, grad, m, M_param, L, b, b_H, 0.05, N, false);
+		current_weights = solver.stochastic_solve(x_data, current_weights, loss, grad, m, M_param, L, b, b_H, 0.1, N, false, 50);
 	}
 
-	{
-		SLBFGS<Vec, Mat, Vec> solver;
-		solver.setMaxIterations(max_iters * 2);
-		solver.setTolerance(1e-8);
-		current_weights = solver.stochastic_solve(x_data, current_weights, loss, grad, m, M_param, L, b, b_H, 0.01, N, false);
-	}
-
-
+	if (n<25)
 	std::cout << "Risultato ottimizzazione (w):\n" << current_weights.transpose() << std::endl;
 	return 0;
 }
