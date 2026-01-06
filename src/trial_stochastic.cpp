@@ -26,10 +26,10 @@ auto grad = [](const Vec& w, const D& x, Vec& g) { grad_fun(w, x, g); };
 
 int main() {
 
-	int n = 5; // dimensione dei vettori
-	int N = 20; // numero di dati
-	int m = 5, M_param = 3, L = 2, b = 4, b_H = 2;
-	double step_size = 0.1;
+	int n = 10; // dimensione dei vettori
+	int N = 209; // numero di dati
+	int m = 2*N, M_param = 10, L = 10, b = 20, b_H = 10;
+	double step_size = 0.01;
 
 	// generatore dati casuali
 	std::vector<Vec> x_data(N);
@@ -52,18 +52,13 @@ int main() {
 	auto loss = [](const Vec& w, const Vec& x) { return loss_fun(w, x); };
 	auto grad = [](const Vec& w, const Vec& x, Vec& g) { grad_fun(w, x, g); };
 
-	// stampa loss ad ogni iterazione per vedere se converge
-	Vec current_weights = weights;
-	for (int iter = 0; iter < max_iters; ++iter) {
-		current_weights = solver.stochastic_solve(x_data, current_weights, loss, grad, m, M_param, L, b, b_H, step_size, N);
-	
-		double mean_loss = 0.0;
-		for (int i = 0; i < N; ++i) {
-			mean_loss += loss(current_weights, x_data[i]);
-		}
-		mean_loss /= N;
-		//std::cout << "Iterazione " << iter+1 << ": Loss media = " << mean_loss << std::endl;
-	}
+	Vec current_weights = solver.stochastic_solve(x_data, weights, loss, grad, m, M_param, L, b, b_H, 0.1, N);
+	solver.setMaxIterations(max_iters*2);
+	 current_weights = solver.stochastic_solve(x_data, weights, loss, grad, m, M_param, L, b, b_H, 0.05, N);
+	 solver.setMaxIterations(max_iters*4);
+	 current_weights = solver.stochastic_solve(x_data, weights, loss, grad, m, M_param, L, b, b_H, 0.01, N);
+
+
 	std::cout << "Risultato ottimizzazione (w):\n" << current_weights.transpose() << std::endl;
 	return 0;
 }

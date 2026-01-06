@@ -142,26 +142,64 @@ Eigen::VectorXd hessian_vector_product(Func &f, const V &weights ,const D &x, co
 };
 
 
+/**
+  * @brief Compute the product of the Hessian of f at weights with vector v using finite differences.
+  *
+  * @param g Gradient function for which to compute the Hessian-vector product.
+  * @param weights Point at which to evaluate the Hessian.
+  * @param x Data point (if needed by f).
+  * @param v direction vector to multiply with the Hessian. 
+  * @param epsilon Finite difference step size.
+  * @return Hessian-vector product H*v.
+  */  
+
+  //g is expected to be a function which takes weights and data as input and returns the gradient in the third argument
+template<typename Func,typename V,typename D>
+V finite_difference_hvp(Func &g, const V &weights, const V &v, const D &x, double epsilon = 1e-8) {
+    V w_plus = weights + epsilon * v;
+    V w_minus = weights - epsilon * v;
+
+    V grad_plus = V::Zero(weights.size());
+    V grad_minus = V::Zero(weights.size());
+    
+    g(w_plus, x, grad_plus);
+    g(w_minus, x, grad_minus);
+    return (grad_plus - grad_minus) / (2.0 * epsilon);
+}
+
+
+
+
+
+/**
+*@brief two-loop recursion to compute H*v where H is the inverse Hessian approximation in L-BFGS
+* it should be called at each iteration to compute the search direction instead of forming H explicitly
+
+*@param s_list List of stored displacement vectors s_k.
+*@param y_list List of stored Hessian action vectors y_k.
+*@param rho_list List of scalars ρ_k = 1 / (y_kᵀ s_k).
+*@param v Vector to multiply with the inverse Hessian approximation.
+*/
 template <typename V>
 V lbfgs_two_loop(const std::vector<V>& s_list, const std::vector<V>& y_list, const std::vector<double>& rho_list, const V& v) { //two loop recursion to compute H*v
     int M = s_list.size();
     std::vector<double> alpha(M);
     V q = v;
 
-    // Primo loop (indietro)
+    // backward loop
     for (int i = M - 1; i >= 0; --i) {
         alpha[i] = rho_list[i] * s_list[i].dot(q);
         q = q - alpha[i] * y_list[i];
     }
 
-    // Scaling iniziale
+    // Scaling
     double gamma = 1.0;
     if (M > 0) {
         gamma = s_list.back().dot(y_list.back()) / y_list.back().dot(y_list.back());
     }
     V r = gamma * q;
 
-    // Secondo loop (avanti)
+    // fowrard loop
     for (int i = 0; i < M; ++i) {
         double beta = rho_list[i] * y_list[i].dot(r);
         r = r + s_list[i] * (alpha[i] - beta);
@@ -250,8 +288,12 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
 
     V wt = weights;
 
+    std::vector<V> w_history;
+
     while (_iters < _max_iters) { //todo add convergence check 
-    // Sample minibatch for gradient estimation
+    
+    w_history.clear();
+      // Sample minibatch for gradient estimation
     V full_gradient = V::Zero(dim_weights);
     V temp_gradient= V::Zero(dim_weights);
 
@@ -265,6 +307,7 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
 
   
     wt = weights;
+    w_history.push_back(wt);
     V variance_reduced_gradient = V::Zero(dim_weights);
     
 
@@ -282,7 +325,7 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
         size_t idx = minibatch_indices[i];
         temp_grad_estimate_wt= V::Zero(dim_weights);
         temp_grad_estimate_wk= V::Zero(dim_weights);
-        S_GradFun(weights, x[idx], temp_grad_estimate_wt);
+        S_GradFun(wt, x[idx], temp_grad_estimate_wt);
         grad_estimate_wt += temp_grad_estimate_wt;
         S_GradFun(weights, x[idx], temp_grad_estimate_wk);
         grad_estimate_wk += temp_grad_estimate_wk;
@@ -293,63 +336,93 @@ V SLBFGS<V,M,D>::stochastic_solve(std::vector<V> x, V weights,const S_VecFun &f,
 
       variance_reduced_gradient = (grad_estimate_wt - grad_estimate_wk) + full_gradient;
 
+//      std::cout << "variance reduced gradient norm at inner iter " << t << ": " << variance_reduced_gradient.norm() << std::endl;
 
       wt = wt - step_size* lbfgs_two_loop(s_list, y_list, rho_list, variance_reduced_gradient);
 
 
+      w_history.push_back(wt);
+
       if (t%L==0 && t>0){
-        //hessian update
+
+        
         r++;
         
-        V u = V::Zero(x.size());
-        for (int j=t-L; j<t; ++j){
-          u += x[j];
+        V u = V::Zero(dim_weights);
+        const int num_wt = static_cast<int>(w_history.size());
+        const int start = std::max(0, num_wt - L);
+        const int count = num_wt - start;
+        for (int j = start; j < num_wt; ++j) {
+          u += w_history[static_cast<size_t>(j)];
+        }
+        if (count > 0) {
+          u /= static_cast<double>(count);
         }
 
-        u /= L;
-        u_list.push_back(u); //todo Formaggia disse qualcosa su pushback da controllare se va bene
-        auto minibatch_indices_H = sample_minibatch_indices(N, b_H, rng);
-        V s = u_list[r] - u_list[r - 1]; //displacement
-        s_list.push_back(s);
+        // costruisci s,y solo se abbiamo un u precedente
+        if (!u_list.empty()) {
+          const V &u_prev = u_list.back();
+          V s = u - u_prev;
+          s_list.push_back(s);
 
-        V y = V::Zero(x.size());
-        for (size_t i=0; i < minibatch_indices_H.size(); ++i) {
-          size_t idx = minibatch_indices_H[i];
-        auto f_single = [&](const autodiff::VectorXvar& w_var) { //function that takes only weights as input otherwise autodiff doesnt work because it doesnt know how to handle extra parameters
-        return f(w_var, x[idx]);
-      };
-        y += hessian_vector_product(f_single, u_list[r - 1], x[idx],s); //todo mi sa che c'è un errore di conversione in VectorXd qui dentro        
+          auto minibatch_indices_H = sample_minibatch_indices(N, b_H, rng);
+          V y = V::Zero(dim_weights);
+          for (size_t i = 0; i < minibatch_indices_H.size(); ++i) {
+            const size_t idx = minibatch_indices_H[i];
+            y += finite_difference_hvp(S_GradFun, u, s, x[idx]);
           }
-      y_list.push_back(y);
-      double rho = 1.0 / y.dot(s);
-      rho_list.push_back(rho);
+          if (!minibatch_indices_H.empty()) {
+            y /= static_cast<double>(minibatch_indices_H.size());
+          }
+
+          y_list.push_back(y);
+          const double ys = y.dot(s);
+         if (std::abs(ys) > 1e-14) {
+            rho_list.push_back(1.0 / ys);
+          } else {
+            s_list.pop_back();
+            y_list.pop_back();}
+        }
+
+        if (M_param > 0 && s_list.size() > static_cast<size_t>(M_param)) {
+          s_list.erase(s_list.begin());
+          y_list.erase(y_list.begin());
+          rho_list.erase(rho_list.begin());
+        }
+
+        u_list.push_back(u);
       
       //H= compute_inverse_Hessian(r, s_list, y_list, rho_list, M_param); //this step is done implicitly in the two loop recursion
-    }
-    
-  
+    }  
   }
 
   if (s_list.size()!=y_list.size() || s_list.size()!=rho_list.size()){
     std::cerr<<"s_list, y_list and rho_list sizes do not match"<<std::endl;
   }
-  
 
 
-  if (s_list.size() > m) {
-    s_list.erase(s_list.begin());
-    y_list.erase(y_list.begin());
-    rho_list.erase(rho_list.begin());
+  if (w_history.size() >= 2) {
+    const int max_i = std::min(m - 1, static_cast<int>(w_history.size()) - 2);
+    if (max_i >= 0) {
+      std::uniform_int_distribution<int> pick_i(0, max_i);
+      weights = w_history[static_cast<size_t>(pick_i(rng))];
+      wt = weights;
+    }
   }
 
+    double mean_loss = 0.0;
+  for (int i = 0; i < N; ++i) {
+    mean_loss += f(weights, x[static_cast<size_t>(i)]);
+  }
+  mean_loss /= static_cast<double>(N);
+  std::cout << "Iteration " << (_iters + 1) << ": Mean Loss = " << mean_loss << std::endl;
 
 
-    _iters++;
+
+
+  _iters++;
 }    
-
-
-
-    return wt;
+  return wt;
 };
 
 
