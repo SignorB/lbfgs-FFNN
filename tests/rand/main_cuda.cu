@@ -1,6 +1,6 @@
+#include "../../src/cuda/gd.cuh"
+#include "../../src/cuda/lbfgs.cuh"
 #include "../../src/cuda/network.cuh"
-#include "../../src/cuda/optimizer_lbfgs.cuh"
-#include "../../src/cuda/optimizer_sgd.cuh"
 #include "../cuda_report.hpp"
 #include "bin_loader.hpp"
 #include <Eigen/Core>
@@ -12,11 +12,12 @@ using Scalar = cuda_mlp::CudaScalar;
 using Mat = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
 
 int main(int argc, char **argv) {
-  int train_size = 150000;
-  int test_size = 10000;
-  int max_iters = 400;
-  Scalar tolerance = 1e-3f;
-  int hidden_dim = 256;
+  int train_size = 300000;
+  int test_size = 50000;
+  int max_iters = 200;
+  Scalar tolerance = 1e-2f;
+  int hidden_dim = 1024;
+  size_t m = 20;
 
   std::cout << "Loading Training Data..." << std::endl;
   Mat train_x = RandLoader::loadMatrix<Scalar>("../tests/rand/data_bench/train_x.bin", train_size);
@@ -53,7 +54,15 @@ int main(int argc, char **argv) {
   cuda_mlp::CudaLBFGS solver(handle);
   solver.setMaxIterations(max_iters);
   solver.setTolerance(tolerance);
-  solver.solve(network, d_train_x.data(), d_train_y.data(), train_size);
+  solver.setMemory(m);
+  const int params_size = static_cast<int>(network.params_size());
+  auto loss_grad = [&](const Scalar *params, Scalar *grad, const Scalar *input, const Scalar *target, int batch) -> Scalar {
+    (void)params;
+    Scalar loss = network.compute_loss_and_grad(input, target, batch);
+    cuda_mlp::device_copy(grad, network.grads_data(), params_size);
+    return loss;
+  };
+  solver.solve(params_size, network.params_data(), d_train_x.data(), d_train_y.data(), train_size, loss_grad);
   auto train_end = std::chrono::steady_clock::now();
   std::chrono::duration<double> train_elapsed = train_end - train_start;
 

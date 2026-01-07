@@ -1,6 +1,5 @@
 #include "../../src/cuda/network.cuh"
-#include "../../src/cuda/optimizer_lbfgs.cuh"
-#include "../../src/cuda/optimizer_sgd.cuh"
+#include "../../src/cuda/lbfgs.cuh"
 #include "../cuda_report.hpp"
 #include "mnist_loader.hpp"
 #include <Eigen/Core>
@@ -44,7 +43,14 @@ int main(int argc, char **argv) {
   cuda_mlp::CudaLBFGS solver(handle);
   solver.setMaxIterations(max_iters);
   solver.setTolerance(tolerance);
-  solver.solve(network, d_train_x.data(), d_train_y.data(), train_size);
+  const int params_size = static_cast<int>(network.params_size());
+  auto loss_grad = [&](const Scalar *params, Scalar *grad, const Scalar *input, const Scalar *target, int batch) -> Scalar {
+    (void)params;
+    Scalar loss = network.compute_loss_and_grad(input, target, batch);
+    cuda_mlp::device_copy(grad, network.grads_data(), params_size);
+    return loss;
+  };
+  solver.solve(params_size, network.params_data(), d_train_x.data(), d_train_y.data(), train_size, loss_grad);
 
   auto train_end = std::chrono::steady_clock::now();
   std::chrono::duration<double> train_elapsed = train_end - train_start;

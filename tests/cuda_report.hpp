@@ -8,8 +8,7 @@
 
 namespace cuda_tests {
 
-template <typename Scalar>
-struct ReportStats {
+template <typename Scalar> struct ReportStats {
   long correct = 0;
   long total = 0;
   Scalar mse = static_cast<Scalar>(0);
@@ -17,10 +16,8 @@ struct ReportStats {
 };
 
 template <typename Scalar, typename Mat>
-inline ReportStats<Scalar> compute_report(cuda_mlp::CudaNetwork &network,
-                                          const cuda_mlp::DeviceBuffer<Scalar> &inputs,
-                                          const Mat &targets,
-                                          int batch) {
+inline ReportStats<Scalar> compute_report(cuda_mlp::CudaNetwork &network, const cuda_mlp::DeviceBuffer<Scalar> &inputs,
+                                          const Mat &targets, int batch) {
   network.forward_only(inputs.data(), batch);
 
   const int out_size = network.output_size();
@@ -75,17 +72,13 @@ inline ReportStats<Scalar> compute_report(cuda_mlp::CudaNetwork &network,
 }
 
 template <typename Scalar, typename Mat>
-inline void print_report(const char *title,
-                         cuda_mlp::CudaNetwork &network,
-                         const cuda_mlp::DeviceBuffer<Scalar> &inputs,
-                         const Mat &targets,
-                         int batch) {
+inline void print_report(const char *title, cuda_mlp::CudaNetwork &network, const cuda_mlp::DeviceBuffer<Scalar> &inputs,
+                         const Mat &targets, int batch) {
   ReportStats<Scalar> stats = compute_report(network, inputs, targets, batch);
 
   std::cout << "\n" << title << std::endl;
   std::cout << "Samples: " << stats.total << std::endl;
-  std::cout << "Accuracy: " << stats.accuracy << "% (" << stats.correct << "/" << stats.total << ")"
-            << std::endl;
+  std::cout << "Accuracy: " << stats.accuracy << "% (" << stats.correct << "/" << stats.total << ")" << std::endl;
   std::cout << "MSE: " << stats.mse << std::endl;
 }
 

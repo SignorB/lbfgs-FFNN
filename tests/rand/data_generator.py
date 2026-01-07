@@ -2,14 +2,14 @@ import numpy as np
 import struct
 import os
 
-N_TRAIN = 150000
-N_TEST = 10000
+N_TRAIN = 300000
+N_TEST = 50000
 INPUT_DIM = 2048
 OUTPUT_DIM = 10
 TEACHER_HIDDEN = 512
 INPUT_SCALE = 1.0
-NOISE_STD_TRAIN = 0.05
-NOISE_STD_TEST = 0.05
+NOISE_STD_TRAIN = 0.0
+NOISE_STD_TEST = 0.0
 SEED = 231
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "data_bench")
