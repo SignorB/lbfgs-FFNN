@@ -1,5 +1,0 @@
-# GPU MNIST (tests/mnist/main_cuda.cu)
-gpu_train_size: 60000
-gpu_test_size: 10000
-gpu_max_iters: 15000
-gpu_tolerance: 1e-1

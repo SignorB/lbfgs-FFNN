@@ -19,7 +19,7 @@ inline void cublas_check(cublasStatus_t status, const char *msg) {
 }
 
 /**
- * @brief RAII wrapper for a cuBLAS handle.
+ * @brief Wrapper for a cuBLAS handle.
  */
 class CublasHandle {
 public:

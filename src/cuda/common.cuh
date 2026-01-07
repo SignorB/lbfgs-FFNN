@@ -7,6 +7,8 @@
 
 namespace cuda_mlp {
 
+using CudaScalar = float;
+
 /**
  * @brief Check a CUDA runtime call and abort on failure.
  * @param err CUDA error code.

@@ -55,7 +55,9 @@ if(CMAKE_CUDA_COMPILER)
     endif()
 
     add_executable(test_mnist_cuda tests/mnist/main_cuda.cu)
+    add_executable(test_gen_cuda tests/rand/main_cuda.cu)
     target_link_libraries(test_mnist_cuda PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
+    target_link_libraries(test_gen_cuda PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
 
     message(STATUS "CUDA compiler found. Enabled test_mnist_cuda.")
 else()

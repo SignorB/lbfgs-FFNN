@@ -11,14 +11,14 @@ public:
   virtual ~CudaOptimizer() = default;
 
   void setMaxIterations(int iters) { max_iters_ = iters; }
-  void setTolerance(double tol) { tol_ = tol; }
+  void setTolerance(CudaScalar tol) { tol_ = tol; }
 
-  virtual void solve(CudaNetwork &net, const double *input, const double *target, int batch) = 0;
+  virtual void solve(CudaNetwork &net, const CudaScalar *input, const CudaScalar *target, int batch) = 0;
 
 protected:
   CublasHandle &handle_;
   int max_iters_ = 200;
-  double tol_ = 1e-6;
+  CudaScalar tol_ = 1e-6f;
 };
 
 } // namespace cuda_mlp
