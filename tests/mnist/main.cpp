@@ -28,29 +28,30 @@ int main() {
     network.bindParams();
 
 
-    /*
+    
     
     std::shared_ptr<SLBFGS<Vec, Mat>> solver = std::make_shared<SLBFGS<Vec, Mat>>();
-    solver->setMaxIterations(500);
-    solver->setTolerance(1.e-4);
+    solver->setMaxIterations(200);
+    solver->setTolerance(1.5e-3);
     
-    int b=20;      //gradient minibatch size
-    int b_H=10*b;    //Hessian minibatch siz
+    int b=64;      //gradient minibatch size
+    int b_H=1.5*b;    //Hessian minibatch siz
     int m=train_size/b;    //number of minibatches
     int M_param=10; //memory parameter
-    int L=10;       //number of epochs between Hessian updates
-    double step_size=0.05; //SGD step size
+    int L=20;       //number of epochs between Hessian updates
+    double step_size=0.01; 
     
     std::cout << "\nStarting Training..." << std::endl;
     
     
-    network.train_stochastic(train_x, train_y, solver, m, M_param, L, b, b_H, step_size, true, 1000);
-    */
+    network.train_stochastic(train_x, train_y, solver, m, M_param, L, b, b_H, step_size, false, 1000);
+    
 
-
-    std::shared_ptr<MinimizerBase<Vec, Mat>> solver = std::make_shared<LBFGS<Vec, Mat>>();
-    solver->setMaxIterations(500);
-    solver->setTolerance(1.e-4);
+/*
+std::shared_ptr<MinimizerBase<Vec, Mat>> solver = std::make_shared<LBFGS<Vec, Mat>>();
+solver->setMaxIterations(500);
+solver->setTolerance(1.e-4);
+*/
 
     std::cout << "\nStarting Training..." << std::endl;
     network.train(train_x, train_y, solver);

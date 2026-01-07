@@ -168,7 +168,7 @@ public:
                         const Eigen::MatrixXd &targets,
                         std::shared_ptr<SLBFGS<Eigen::VectorXd, Eigen::MatrixXd>> minimizer,
                         int m, int M_param, int L, int b, int b_H, double step_size,
-                        bool verbose = false, int print_every = 50) {
+                        bool verbose, int print_every = 50) {
     using Vec = Eigen::VectorXd;
 
     std::vector<Vec> train_inputs;
@@ -180,6 +180,7 @@ public:
 
     Vec weights(params_size);
     std::copy(params.begin(), params.end(), weights.data());
+    double lambda = 1e-4; // L2 regularization coefficient
 
     auto f_stochastic = [&](const Vec &w, const Vec &input, const Vec &target) -> double {
       this->setParams(w);
@@ -187,7 +188,11 @@ public:
       input_mat.col(0) = input;
       const auto &output = this->forward(input_mat);
       Vec diff = output.col(0) - target;
-      return 0.5 * diff.squaredNorm();
+      double loss = 0.5 * diff.squaredNorm();
+      loss += 0.5 * lambda * w.squaredNorm(); //L2 regularization
+      if (verbose) 
+      std::cout << "loss: " << loss << std::endl;
+      return loss;
     };
 
     auto g_stochastic = [&](const Vec &w, const Vec &input, const Vec &target, Vec &grad) {
@@ -203,6 +208,7 @@ public:
       this->backward(loss_grad);
 
       this->getGrads(grad);
+      grad.array() += lambda * w.array(); //L2 regularization
     };
 
     // Set data and params on minimizer
