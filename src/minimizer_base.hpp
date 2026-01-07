@@ -168,8 +168,8 @@ protected:
   int stochastic_m = 10; // number of minibatches per epoch
   int M_param = 10; // memory parameter
   int L = 10; // frequency of Hessian updates
-  int b = 20; // gradient minibatch size
-  int b_H = 200; // Hessian minibatch size
+  int b = 10; // gradient minibatch size
+  int b_H = 16; // Hessian minibatch size
   double step_size = 0.01; // step size
 
   /**

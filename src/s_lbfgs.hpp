@@ -37,7 +37,7 @@ class SLBFGS : public MinimizerBase<V, M> {
   using Base::b;
   using Base::b_H;
   using Base::step_size;
-//  using Base::alpha_wolfe;
+  using Base::alpha_wolfe;
   using Base::m;
 
 
@@ -126,28 +126,47 @@ Eigen::VectorXd hessian_vector_product(Func &f, const V &weights ,const V &input
     for (int i = 0; i < weights.size(); ++i) {
       w_var(i) = weights(i);
     }
-    
+    //debug
+    std::cout<< "hvp weights conversion" << std::endl;
+
+
     VectorXvar v_var(v.size());
     for (int i = 0; i < v.size(); ++i) {
       v_var(i) = v(i);
     }
+
+    //debug
+    std::cout<< "hvp v conversion" << std::endl;
 
 
     var loss= f(w_var, input, target);
 
     VectorXvar grad = autodiff::gradient(loss, w_var);
 
+    //debug
+    std::cout<< "hvp gradient computed" << std::endl;
+
     // Compute directional derivative of the gradient in the direction of v
 
     var directional = grad.dot(v_var);
 
+    //debug
+    std::cout<< "hvp directional derivative computed" << std::endl;
+
+
     //hessian*v
     VectorXvar dugrad = autodiff::gradient(directional, w_var);
     
+    //debug    
+    std::cout<< "hvp hvp computed" << std::endl;
+
+
     Eigen::VectorXd result(dugrad.size());
     for (int i = 0; i < dugrad.size(); ++i) {
       result(i) = autodiff::val(dugrad(i));
     }
+
+    //debyg
 
     return result;
   
@@ -168,7 +187,7 @@ Eigen::VectorXd hessian_vector_product(Func &f, const V &weights ,const V &input
 
   //g is expected to be a function which takes weights, input, target as input and returns the gradient in the fourth argument
 template<typename Func,typename V>
-V finite_difference_hvp(Func &g, const V &weights, const V &input, const V &target, const V &v, double epsilon = 1e-8) {
+V finite_difference_hvp(Func &g, const V &weights, const V &input, const V &target, const V &v, double epsilon = 1e-6) {
     V w_plus = weights + epsilon * v;
     V w_minus = weights - epsilon * v;
 
@@ -208,7 +227,13 @@ V lbfgs_two_loop(const std::vector<V>& s_list, const std::vector<V>& y_list, con
     // Scaling
     double gamma = 1.0;
     if (M > 0) {
-        gamma = s_list.back().dot(y_list.back()) / y_list.back().dot(y_list.back());
+      double denom = y_list.back().dot(y_list.back());
+      if (std::abs(denom) < 1e-12) {
+        gamma = 1.0;
+      } else {
+        gamma = s_list.back().dot(y_list.back()) / denom;
+      }
+      gamma = std::min(std::max(gamma, 1e-6), 1e6);
     }
     V r = gamma * q;
 
@@ -356,6 +381,7 @@ V SLBFGS<V,M>::stochastic_solve(std::vector<V> inputs, std::vector<V> targets, V
 
       variance_reduced_gradient = (grad_estimate_wt - grad_estimate_wk) + full_gradient;
 
+      /*
       if (verbose_this_epoch) {
         const bool should_print = (t < 5) || (print_every > 0 && (t % print_every == 0)) || (t == m - 1);
         if (should_print) {
@@ -365,14 +391,14 @@ V SLBFGS<V,M>::stochastic_solve(std::vector<V> inputs, std::vector<V> targets, V
           }
           mean_loss_t /= static_cast<double>(N);
           std::cout << "  [epoch 1] t=" << t
-                    << "  ||v_t||=" << variance_reduced_gradient.norm()
-                    << "  mean_loss(w_t)=" << mean_loss_t << std::endl;
+          << "  ||v_t||=" << variance_reduced_gradient.norm()
+          << "  mean_loss(w_t)=" << mean_loss_t << std::endl;
         }
       }
+      */
 
 
-      wt = wt - step_size* lbfgs_two_loop(s_list, y_list, rho_list, variance_reduced_gradient);
-
+      wt = wt - step_size * lbfgs_two_loop(s_list, y_list, rho_list, variance_reduced_gradient);
       // Only keep last L+1 iterates to limit memory usage
       if (w_history.size() >= static_cast<size_t>(L + 1)) {
         w_history.erase(w_history.begin());
@@ -410,7 +436,7 @@ V SLBFGS<V,M>::stochastic_solve(std::vector<V> inputs, std::vector<V> targets, V
 
           y_list.push_back(y);
           const double ys = y.dot(s);
-         if (std::abs(ys) > 1e-14) {
+         if (std::abs(ys) > 1e-12) {
             rho_list.push_back(1.0 / ys);
           } else {
             s_list.pop_back();
@@ -443,6 +469,8 @@ V SLBFGS<V,M>::stochastic_solve(std::vector<V> inputs, std::vector<V> targets, V
     wt = weights;
   }
 
+
+
   const V &x_m = w_history.back();
   double mean_loss = 0.0;
   for (int i = 0; i < N; ++i) {
@@ -450,6 +478,7 @@ V SLBFGS<V,M>::stochastic_solve(std::vector<V> inputs, std::vector<V> targets, V
   }
   mean_loss /= static_cast<double>(N);
   std::cout << "Iteration " << (_iters + 1) << ": Mean Loss = " << mean_loss << std::endl;
+
 
 
 
