@@ -12,3 +12,12 @@ BraceWrapping:
 AllowShortIfStatementsOnASingleLine: true
 IndentPPDirectives: BeforeHash
 ColumnLimit: 125
+BinPackArguments: false
+AlignAfterOpenBracket: DontAlign
+BinPackParameters: false
+AllowAllConstructorInitializersOnNextLine: true
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignConsecutiveMacros: false
+Cpp11BracedListStyle: true
+BreakBeforeBraces: Attach
