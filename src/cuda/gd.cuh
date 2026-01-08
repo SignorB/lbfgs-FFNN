@@ -16,8 +16,12 @@ public:
 
   void setMomentum(CudaScalar momentum) { momentum_ = momentum; }
 
-  void solve(int n, CudaScalar *params, const CudaScalar *input, const CudaScalar *target, int total_samples,
-             const LossGradFun &loss_grad) override {
+  void solve(int n,
+      CudaScalar *params,
+      const CudaScalar *input,
+      const CudaScalar *target,
+      int total_samples,
+      const LossGradFun &loss_grad) override {
 
     if (n <= 0 || params == nullptr) return;
 
@@ -29,19 +33,20 @@ public:
     }
 
     CudaScalar loss = loss_grad(params, grad.data(), input, target, total_samples);
+    CudaScalar effective_lr = lr_;
+    effective_lr /= static_cast<CudaScalar>(total_samples);
+    loss /= static_cast<CudaScalar>(total_samples);
 
     for (int iter = 0; iter < max_iters_; ++iter) {
       CudaScalar grad_norm = device_nrm2(handle_, grad.data(), n);
       if (grad_norm < tol_) break;
 
-      std::cout << "Iter " << (iter + 1) << " - loss: " << loss << " - |g|: " << grad_norm << std::endl;
-
       if (momentum_ > 0.0f) {
         device_scal(handle_, n, momentum_, velocity.data());
-        device_axpy(handle_, n, -lr_, grad.data(), velocity.data());
+        device_axpy(handle_, n, -effective_lr, grad.data(), velocity.data());
         device_axpy(handle_, n, 1.0f, velocity.data(), params);
       } else {
-        device_axpy(handle_, n, -lr_, grad.data(), params);
+        device_axpy(handle_, n, -effective_lr, grad.data(), params);
       }
       loss = loss_grad(params, grad.data(), input, target, total_samples);
     }

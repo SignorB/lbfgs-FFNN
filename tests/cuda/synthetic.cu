@@ -17,12 +17,19 @@ int main() {
 
   runner.buildNetwork({{2048, 1024, cuda_mlp::ActivationType::Tanh}, {1024, 10, cuda_mlp::ActivationType::Linear}});
 
-  std::vector<cuda_mlp::RunConfig> runs = {cuda_mlp::RunConfig{.name = "LBFGS_Stress",
-      .optimizer = cuda_mlp::OptimizerType::LBFGS,
-      .max_iters = 200,
-      .tolerance = 1e-2f,
-      .lbfgs_memory = 20}};
-
+  std::vector<cuda_mlp::RunConfig> runs = {
+      // cuda_mlp::RunConfig{.name = "LBFGS",
+      //     .optimizer = cuda_mlp::OptimizerType::LBFGS,
+      //     .max_iters = 200,
+      //     .tolerance = 1e-2f,
+      //     .lbfgs_memory = 20},
+      cuda_mlp::RunConfig{.name = "GD",
+          .optimizer = cuda_mlp::OptimizerType::GD,
+          .max_iters = 200,
+          .tolerance = 1e-2f,
+          .gd_lr = 0.1f,
+          .gd_momentum = 0.9f},
+  };
   runner.runExperiments(runs, "results_synthetic.csv");
 
   return 0;

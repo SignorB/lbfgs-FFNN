@@ -24,15 +24,9 @@ int main() {
           .lbfgs_memory = 20},
       cuda_mlp::RunConfig{.name = "GD_Momentum",
           .optimizer = cuda_mlp::OptimizerType::GD,
-          .max_iters = 500,
-          .tolerance = 1e-4f,
-          .gd_lr = 0.1f,
-          .gd_momentum = 0.9f},
-      cuda_mlp::RunConfig{.name = "GD_Slow",
-          .optimizer = cuda_mlp::OptimizerType::GD,
-          .max_iters = 500,
-          .tolerance = 1e-4f,
-          .gd_lr = 0.1f,
+          .max_iters = 50000,
+          .tolerance = 1e-2f,
+          .gd_lr = 0.f,
           .gd_momentum = 0.9f},
   };
 

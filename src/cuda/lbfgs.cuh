@@ -15,8 +15,12 @@ public:
   explicit CudaLBFGS(CublasHandle &handle) : CudaMinimizerBase(handle) {}
   void setMemory(size_t m) { m_ = m; }
 
-  void solve(int n, CudaScalar *params, const CudaScalar *input, const CudaScalar *target, int batch,
-             const LossGradFun &loss_grad) override {
+  void solve(int n,
+      CudaScalar *params,
+      const CudaScalar *input,
+      const CudaScalar *target,
+      int batch,
+      const LossGradFun &loss_grad) override {
     if (n <= 0 || params == nullptr) {
       return;
     }
@@ -83,15 +87,17 @@ public:
 
       device_copy(grad.data(), grad_new.data(), n);
       loss = loss_new;
-
-      std::cout << "Iter " << (iter + 1) << " - loss: " << loss << std::endl;
     }
   }
 
 private:
-  void compute_direction(const DeviceBuffer<CudaScalar> &grad, const std::vector<DeviceBuffer<CudaScalar>> &s_list,
-                         const std::vector<DeviceBuffer<CudaScalar>> &y_list, const std::vector<CudaScalar> &rho_list,
-                         DeviceBuffer<CudaScalar> &p, DeviceBuffer<CudaScalar> &q, DeviceBuffer<CudaScalar> &z) {
+  void compute_direction(const DeviceBuffer<CudaScalar> &grad,
+      const std::vector<DeviceBuffer<CudaScalar>> &s_list,
+      const std::vector<DeviceBuffer<CudaScalar>> &y_list,
+      const std::vector<CudaScalar> &rho_list,
+      DeviceBuffer<CudaScalar> &p,
+      DeviceBuffer<CudaScalar> &q,
+      DeviceBuffer<CudaScalar> &z) {
     const int n = static_cast<int>(grad.size());
 
     if (s_list.empty()) {
