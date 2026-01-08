@@ -3,7 +3,6 @@
 #include "../../src/cuda/gd.cuh"
 #include "../../src/cuda/lbfgs.cuh"
 #include "../../src/cuda/network.cuh"
-#include "../cuda_report.hpp"
 #include <Eigen/Core>
 #include <chrono>
 #include <fstream>
