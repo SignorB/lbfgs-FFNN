@@ -41,6 +41,22 @@ foreach(TARGET ${CXX_TARGETS})
     target_link_libraries(${TARGET} PRIVATE autodiff::autodiff Eigen3::Eigen)
 endforeach()
 
+set(ENZYME_PATH "/enzyme/Downloads/Enzyme/enzyme/build/Enzyme/ClangEnzyme-15.so")
+
+if(NOT EXISTS "${ENZYME_PATH}")
+    message(FATAL_ERROR "ENZYME NOT FOUND :( !!")
+endif()
+add_executable(test_enzyme tests/enzyme_test.cpp)
+
+set_target_properties(test_enzyme PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
+target_link_libraries(test_enzyme PRIVATE Eigen3::Eigen autodiff::autodiff)
+
+target_compile_options(test_enzyme PRIVATE 
+    -O3 
+    -fno-strict-aliasing 
+    "SHELL:-Xclang -load -Xclang ${ENZYME_PATH}"
+)
+
 include(CheckLanguage)
 check_language(CUDA)
 
