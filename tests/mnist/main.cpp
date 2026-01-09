@@ -31,8 +31,10 @@ int main() {
     
     
     std::shared_ptr<SLBFGS<Vec, Mat>> solver = std::make_shared<SLBFGS<Vec, Mat>>();
-    solver->setMaxIterations(200);
+    solver->setMaxIterations(300);
     solver->setTolerance(1.5e-3);
+    //CSV output (passes, mean_loss, log10_mean_loss, iteration)
+    solver->setLogFile("slbfgs_training.csv");
     
     int b=64;      //gradient minibatch size
     int b_H=1.5*b;    //Hessian minibatch siz
@@ -53,8 +55,6 @@ solver->setMaxIterations(500);
 solver->setTolerance(1.e-4);
 */
 
-    std::cout << "\nStarting Training..." << std::endl;
-    network.train(train_x, train_y, solver);
 
 
     std::cout << "\nTRAINING SET RESULTS:" << std::endl;

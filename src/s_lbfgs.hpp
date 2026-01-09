@@ -11,6 +11,8 @@
 
 #include <random>
 #include <numeric>
+#include <fstream>
+#include <cmath>
 
 
 
@@ -51,6 +53,9 @@ public:
     return stochastic_solve(_inputs, _targets, x, _sf, _sg, stochastic_m, M_param, L, b, b_H, step_size, static_cast<int>(_inputs.size()), false, 50);
   };
   V stochastic_solve(std::vector<V> inputs, std::vector<V> targets, V weights,const S_VecFun &f,const S_GradFun &S_GradFun, int m, int M_param, int L, int b, int b_H, double step_size, int N, bool verbose=false, int print_every=50);
+
+  
+  void setLogFile(const std::string &path) { _logfile = path; }
   static std::vector<size_t> sample_minibatch_indices(const size_t N, size_t batch_size, std::mt19937 &rng);
 
   void setData(const std::vector<V> &inputs, const std::vector<V> &targets, const S_VecFun &f, const S_GradFun &g) {
@@ -65,6 +70,7 @@ private:
   std::vector<V> _targets;
   S_VecFun _sf;
   S_GradFun _sg;
+  std::string _logfile;
 
 };
 
@@ -309,6 +315,24 @@ Eigen::MatrixXd compute_inverse_Hessian(int r, const std::vector<V> &s_list, con
 template <typename V, typename M>
 V SLBFGS<V,M>::stochastic_solve(std::vector<V> inputs, std::vector<V> targets, V weights,const S_VecFun &f,const S_GradFun &S_GradFun, int m, int M_param, int L, int b, int b_H, double step_size, int N, bool verbose, int print_every) {
     int r=0;
+    double passes = 0.0; // number of passes through data 
+    std::ofstream logfile_stream;
+    if (!_logfile.empty()) {
+      // Open in append mode. If file is empty/new, write header.
+      bool need_header = true;
+      {
+        std::ifstream fin(_logfile);
+        if (fin.good()) {
+          int c = fin.get();
+          if (c != EOF) need_header = false;
+        }
+      }
+      logfile_stream.open(_logfile, std::ofstream::out | std::ofstream::app);
+      if (logfile_stream.is_open() && need_header) {
+        logfile_stream << "passes,mean_loss,log10_mean_loss,iteration" << std::endl;
+        logfile_stream.flush();
+      }
+    }
     
 
     std::vector<V> u_list;       //stored iterates for Hessian update
@@ -342,6 +366,8 @@ V SLBFGS<V,M>::stochastic_solve(std::vector<V> inputs, std::vector<V> targets, V
     }
 
     full_gradient /= N; // 1/N sum g_i(weights)
+    // full gradient computation= one pass through data
+    passes += 1.0;
 
     if (full_gradient.norm()<_tol){
       std::cout<<"Converged: gradient norm "<<full_gradient.norm()<<" below tolerance "<<_tol<<std::endl;
@@ -380,6 +406,9 @@ V SLBFGS<V,M>::stochastic_solve(std::vector<V> inputs, std::vector<V> targets, V
       grad_estimate_wk /= b;
 
       variance_reduced_gradient = (grad_estimate_wt - grad_estimate_wk) + full_gradient;
+
+      // Two gradient estimates per minibatch (wt and weights) each using b samples
+      passes += (2.0 * static_cast<double>(b)) / static_cast<double>(N);
 
       /*
       if (verbose_this_epoch) {
@@ -435,6 +464,8 @@ V SLBFGS<V,M>::stochastic_solve(std::vector<V> inputs, std::vector<V> targets, V
           }
 
           y_list.push_back(y);
+          // Each finite-difference HVP costs 2 gradient evaluations per sample
+          passes += (2.0 * static_cast<double>(minibatch_indices_H.size())) / static_cast<double>(N);
           const double ys = y.dot(s);
          if (std::abs(ys) > 1e-12) {
             rho_list.push_back(1.0 / ys);
@@ -479,11 +510,20 @@ V SLBFGS<V,M>::stochastic_solve(std::vector<V> inputs, std::vector<V> targets, V
   mean_loss /= static_cast<double>(N);
   std::cout << "Iteration " << (_iters + 1) << ": Mean Loss = " << mean_loss << std::endl;
 
+  if (logfile_stream.is_open()) {
+    double log_mean = (mean_loss > 0.0) ? std::log10(mean_loss) : -INFINITY;
+    logfile_stream << passes << "," << mean_loss << "," << log_mean << "," << (_iters + 1) << std::endl;
+    logfile_stream.flush();
+  }
+
 
 
 
   _iters++;
 }    
+
+  if (logfile_stream.is_open()) logfile_stream.close();
+
   return wt;
 };
 
