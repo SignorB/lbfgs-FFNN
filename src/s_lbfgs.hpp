@@ -329,7 +329,7 @@ V SLBFGS<V,M>::stochastic_solve(std::vector<V> inputs, std::vector<V> targets, V
       }
       logfile_stream.open(_logfile, std::ofstream::out | std::ofstream::app);
       if (logfile_stream.is_open() && need_header) {
-        logfile_stream << "passes,mean_loss,log10_mean_loss,iteration" << std::endl;
+        logfile_stream << "passes,loss,log10_loss,iteration" << std::endl;
         logfile_stream.flush();
       }
     }
@@ -503,16 +503,16 @@ V SLBFGS<V,M>::stochastic_solve(std::vector<V> inputs, std::vector<V> targets, V
 
 
   const V &x_m = w_history.back();
-  double mean_loss = 0.0;
+  double loss = 0.0;
   for (int i = 0; i < N; ++i) {
-    mean_loss += f(x_m, inputs[static_cast<size_t>(i)], targets[static_cast<size_t>(i)]);
+    loss += f(x_m, inputs[static_cast<size_t>(i)], targets[static_cast<size_t>(i)]);
   }
-  mean_loss /= static_cast<double>(N);
-  std::cout << "Iteration " << (_iters + 1) << ": Mean Loss = " << mean_loss << std::endl;
+ // mean_loss /= static_cast<double>(N);
+  std::cout << "Iteration " << (_iters + 1) << ": Loss = " << loss << std::endl;
 
   if (logfile_stream.is_open()) {
-    double log_mean = (mean_loss > 0.0) ? std::log10(mean_loss) : -INFINITY;
-    logfile_stream << passes << "," << mean_loss << "," << log_mean << "," << (_iters + 1) << std::endl;
+    double log_loss = (loss > 0.0) ? std::log10(loss) : -INFINITY;
+    logfile_stream << passes << "," << loss << "," << log_loss << "," << (_iters + 1) << std::endl;
     logfile_stream.flush();
   }
 
