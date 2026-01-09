@@ -2,17 +2,17 @@ cmake_minimum_required(VERSION 3.18)
 project(MyProject LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+#set(CMAKE_CXX_STANDARD_REQUIRED ON)
+#set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-include(CheckIPOSupported)
-check_ipo_supported(RESULT result OUTPUT output)
-if(result)
-    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
-    message(STATUS "LTO (Link Time Optimization) enabled.")
-else()
-    message(WARNING "LTO not supported: ${output}")
-endif()
+#include(CheckIPOSupported)
+#check_ipo_supported(RESULT result OUTPUT output)
+#if(result)
+#    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+#    message(STATUS "LTO (Link Time Optimization) enabled.")
+#else()
+#    message(WARNING "LTO not supported: ${output}")
+#endif()
 
 add_compile_options(
     $<$<COMPILE_LANGUAGE:CXX>:-O3>

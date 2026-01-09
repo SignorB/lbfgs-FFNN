@@ -60,8 +60,10 @@ int main() {
             input(0) = x;
             input(1) = t;
             var u = network.forward(input)(0,0);
-            auto [u_x,u_t] = autodiff::derivatives(u, wrt(x,t)); //more efficient because the graph does not have to be rebuilt
-            auto u_xx= autodiff::derivative(u_x, wrt(x));
+
+            var u_x =autodiff::derivative(u, wrt(x));
+            var u_t =autodiff::derivative(u, wrt(t));
+            var u_xx= autodiff::derivative(u_x, wrt(x));
 
             var f = u_t - 0.01 / M_PI * u_xx + u * u_x;
 
@@ -102,9 +104,14 @@ solver->setTolerance(1.e-4);
 
     Vec initial_params(params_var.size());
     for (int i = 0; i < params_var.size(); ++i) {
-        initial_params(i) = params_var(i).cast<double>();
+        initial_params(i) = static_cast<double>(params_var(i));
     }
-    Vec optimized_params = solver->solve(initial_params, loss_function);
+
+    //function wrapper necessary to match the expected signature
+
+    std::function<var(VectorXvar)> loss_func_wrapper = loss_function;
+
+    Vec optimized_params = solver->solve(initial_params, loss_func_wrapper);
     
 
     network.setParams(optimized_params.cast<var>());
@@ -116,7 +123,7 @@ solver->setTolerance(1.e-4);
     for(double t=0; t<=1.0; t+=0.02) {
         for(double x=-1.0; x<=1.0; x+=0.02) {
             Eigen::Matrix<var, 2, 1> in; in << x, t;
-            double u = network.forward(in)(0, 0).val(); 
+            double u = static_cast<double>(network.forward(in)(0, 0)); 
             file << t << "," << x << "," << u << "\n";
         }
     }

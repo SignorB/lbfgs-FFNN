@@ -76,7 +76,7 @@ class Network {
 
 
   VectorT getParams() const {
-    return Eigen::Map<VectorT>(params.data(), params_size);
+    return Eigen::Map<const VectorT>(params.data(), params_size); //i had a missing const here
   }
 
   private:
