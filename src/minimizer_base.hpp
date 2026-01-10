@@ -26,6 +26,9 @@ public:
     void setTolerance(double tol) noexcept { _tol = tol; }
     void setInitialHessian(M b) noexcept { _B = b; }
     void setHessian(const HessFun<V, M> &hessFun) noexcept { _hessFun = hessFun; }
+    void setArmijoMaxIter(double max_iter) noexcept { armijo_max_iter = max_iter; }
+    void setMaxLineIters(double max_iters) noexcept { max_line_iters = max_iters; }
+    void setHistorySize(size_t history_size) noexcept { m = history_size; }
 
     void setStochasticParams(int stochastic_m, int M_param, int L, int b, int b_H, double step_size) noexcept {
         this->stochastic_m = stochastic_m;
