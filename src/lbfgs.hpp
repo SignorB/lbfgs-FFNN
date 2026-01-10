@@ -49,7 +49,9 @@ public:
     V x_new = x;          ///< Updated point.
 
     for (_iters = 0; _iters < _max_iters; ++_iters) {
-
+      std::cout << _max_iters << std::endl;
+      std::cout << "iters: " << _iters << " grad norm: " << grad.norm() << std::endl;
+      
       // Stopping condition based on gradient norm
       if (grad.norm() < _tol) {
         break;

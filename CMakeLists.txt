@@ -41,20 +41,23 @@ add_subdirectory(lib/autodiff)
 #     target_link_libraries(${TARGET} PRIVATE autodiff::autodiff Eigen3::Eigen)
 # endforeach()
 
-set(ENZYME_PATH "/enzyme/Downloads/Enzyme/enzyme/build/Enzyme/ClangEnzyme-15.so")
+set(ENZYME_PATH "/usr/src/Enzyme/enzyme/build/Enzyme/ClangEnzyme-15.so")
 
 if(NOT EXISTS "${ENZYME_PATH}")
     message(FATAL_ERROR "ENZYME NOT FOUND :( !!")
 endif()
-add_executable(test_enzyme tests/enzyme_test2.cpp)
+add_executable(test_burgers tests/burgers/test_burgers.cpp)
 
-set_target_properties(test_enzyme PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
-target_link_libraries(test_enzyme PRIVATE Eigen3::Eigen autodiff::autodiff)
+set_target_properties(test_burgers PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
+target_link_libraries(test_burgers PRIVATE Eigen3::Eigen autodiff::autodiff)
 
-target_compile_options(test_enzyme PRIVATE 
-    -O3 
-    -fno-strict-aliasing
-    -fmax-errors=1
+
+  target_compile_options(test_burgers PRIVATE 
+    -O3
+    -march=native          # <--- FONDAMENTALE: Usa AVX/AVX2/AVX512 della tua CPU
+    -ffast-math            # <--- MOLTO IMPORTANTE: Velocizza tanh, exp e calcoli floating point
+    -fno-math-errno        # <--- Evita controlli inutili sugli errori matematici
+    -DNDEBUG               # <--- CRUCIALE PER EIGEN: Disabilita assert e controlli di range
     "SHELL:-Xclang -load -Xclang ${ENZYME_PATH}"
 )
 

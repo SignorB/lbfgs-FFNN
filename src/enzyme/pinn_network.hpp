@@ -7,6 +7,9 @@
 #include <random>
 #include <algorithm> 
 
+using Real = double; 
+// ==============================
+
 /*
 macro needed to force inling via compiler. In fact inline is not always
 respected by our silly friend
@@ -16,11 +19,11 @@ respected by our silly friend
 #endif
 
 struct Tanh {
-    static ENZYME_INLINE double apply(double x) { return std::tanh(x); }
+    static ENZYME_INLINE Real apply(Real x) { return std::tanh(x); }
 };
 
 struct Linear {
-    static ENZYME_INLINE double apply(double x) { return x; }
+    static ENZYME_INLINE Real apply(Real x) { return x; }
 };
 
 
@@ -30,12 +33,12 @@ struct Dense {
     static constexpr int OutSize = Out;
     static constexpr int NumParams = (In * Out) + Out;
 
-    static ENZYME_INLINE void forward(const double* p, const double* in, double* out) {
-        const double* W = p;
-        const double* b = p + (In * Out);
+    static ENZYME_INLINE void forward(const Real* p, const Real* in, Real* out) {
+        const Real* W = p;
+        const Real* b = p + (In * Out);
 
         for (int i = 0; i < Out; ++i) {
-            double z = 0.0;
+            Real z = 0.0;
             for (int j = 0; j < In; ++j) {
                 z += W[i * In + j] * in[j];
             }
@@ -52,7 +55,7 @@ public:
     static constexpr int TotalParams = (0 + ... + Layers::NumParams);
     static constexpr int MaxLayerSize = std::max({Layers::InSize..., Layers::OutSize...});
 
-    std::vector<double> params;
+    std::vector<Real> params;
 
     PINN() {
         params.resize(TotalParams);
@@ -62,14 +65,14 @@ public:
     void init_params() {
         std::random_device rd;
         std::mt19937 gen(rd());
-        double* ptr = params.data();
+        Real* ptr = params.data();
         
         auto init_layer = [&](auto&& self, auto index_const) -> void {
             constexpr size_t I = decltype(index_const)::value;
             if constexpr (I < sizeof...(Layers)) {
                 using LayerType = std::tuple_element_t<I, Architecture>;
-                double limit = std::sqrt(6.0 / (LayerType::InSize + LayerType::OutSize));
-                std::uniform_real_distribution<double> dist(-limit, limit);
+                Real limit = std::sqrt(6.0 / (LayerType::InSize + LayerType::OutSize));
+                std::uniform_real_distribution<Real> dist(-limit, limit);
                 for(int i=0; i < LayerType::NumParams; ++i) *ptr++ = dist(gen);
                 self(self, std::integral_constant<size_t, I + 1>{});
             }
@@ -78,7 +81,7 @@ public:
     }
 
     template <size_t I>
-    static ENZYME_INLINE void process_layers(const double*& p_ptr, double* input_buf, double* output_buf) {
+    static ENZYME_INLINE void process_layers(const Real*& p_ptr, Real* input_buf, Real* output_buf) {
         if constexpr (I < sizeof...(Layers)) {
             using CurrentLayer = std::tuple_element_t<I, Architecture>;
             
@@ -91,9 +94,9 @@ public:
     }
 
 
-    static ENZYME_INLINE double forward_static(const double* x_ptr, const double* p_ptr) {
-        double buf1[MaxLayerSize];
-        double buf2[MaxLayerSize];
+    static ENZYME_INLINE Real forward_static(const Real* x_ptr, const Real* p_ptr) {
+        Real buf1[MaxLayerSize];
+        Real buf2[MaxLayerSize];
 
         for(int i=0; i<MaxLayerSize; ++i) { buf1[i] = 0.0; buf2[i] = 0.0; }
 

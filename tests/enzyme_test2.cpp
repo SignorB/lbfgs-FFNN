@@ -35,6 +35,7 @@ double pde_residual(double x, const double* p) {
     __enzyme_autodiff((void*)calc_dudx, 
                       enzyme_dup, &x, &d2u_dx2, 
                       enzyme_const, p);
+    
     return d2u_dx2 + u;
 }
 
@@ -52,11 +53,16 @@ double loss_function(double* p, Data* data) {
     double du0 = calc_dudx(&zero, p);
     loss += (du0 - 1.0) * (du0 - 1.0);
 
+    double max_r = - 1e10;
+    
     // Physics
     for (double x : data->points) {
         double r = pde_residual(x, p);
+        max_r = std::max(r, max_r);
         loss += r * r;
     }
+
+    std::cout << "PDE_Residual: " << max_r << std::endl;
     
     return loss;
 }
