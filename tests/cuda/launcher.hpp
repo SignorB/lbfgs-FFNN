@@ -3,6 +3,7 @@
 #include "../../src/cuda/gd.cuh"
 #include "../../src/cuda/lbfgs.cuh"
 #include "../../src/cuda/network.cuh"
+#include "../../src/cuda/sgd.cuh"
 #include <Eigen/Core>
 #include <chrono>
 #include <fstream>
@@ -14,7 +15,7 @@
 
 namespace cuda_mlp {
 
-enum class OptimizerType { GD, LBFGS };
+enum class OptimizerType { GD, SGD, LBFGS };
 
 struct LayerConfig {
   int input_dim;
@@ -30,7 +31,12 @@ struct RunConfig {
 
   size_t lbfgs_memory = 10;
 
-  float gd_lr = 0.01f, gd_momentum = 0.9f;
+  int batch_size = 200;
+
+  float gd_lr = 0.01f;
+  float gd_momentum = 0.0f;
+  float sgd_decay_rate = 1.0f;
+  int sgd_decay_step = 0;
 
   int log_interval = 10;
 };
@@ -76,8 +82,7 @@ public:
         initial_params.data(), network_.params_data(), network_.params_size() * sizeof(Scalar), cudaMemcpyDeviceToDevice);
 
     for (const auto &config : configs) {
-      std::cout << "\n>>> Running: " << config.name << " [" << (config.optimizer == OptimizerType::LBFGS ? "LBFGS" : "GD")
-                << "] <<<" << std::endl;
+      std::cout << "\n>>> Running: " << config.name << "<<<" << std::endl;
 
       cudaMemcpy(
           network_.params_data(), initial_params.data(), network_.params_size() * sizeof(Scalar), cudaMemcpyDeviceToDevice);
@@ -89,6 +94,15 @@ public:
         lbfgs->setMaxIterations(config.max_iters);
         lbfgs->setTolerance(config.tolerance);
         solver = std::move(lbfgs);
+      } else if (config.optimizer == OptimizerType::SGD) {
+        auto sgd = std::make_unique<CudaSGD>(handle_);
+        sgd->setLearningRate(config.gd_lr);
+        sgd->setMomentum(config.gd_momentum);
+        sgd->setBatchSize(config.batch_size);
+        sgd->setMaxIterations(config.max_iters);
+        sgd->setLearningRateDecay(config.sgd_decay_rate, config.sgd_decay_step);
+        sgd->setDimensions(static_cast<int>(dataset_.train_x.rows()), static_cast<int>(dataset_.train_y.rows()));
+        solver = std::move(sgd);
       } else {
         auto gd = std::make_unique<CudaGD>(handle_);
         gd->setLearningRate(config.gd_lr);
@@ -143,7 +157,8 @@ public:
                    << final_test.accuracy << "," << iter_count << "\n";
 
       log_file.close();
-      std::cout << "Done: " << config.name << " (Test Acc: " << final_test.accuracy << "%)\n";
+      std::cout << "Done: " << config.name << " \nTrain Acc: " << final_train.accuracy
+                << "%\nTest Acc: " << final_test.accuracy << "%\n";
     }
     summary_file.close();
   }

@@ -50,6 +50,7 @@ public:
     CudaScalar current_lr = lr_;
 
     int num_batches = (total_samples + batch_size_ - 1) / batch_size_;
+    CudaScalar prev_epoch_loss_avg = std::numeric_limits<CudaScalar>::infinity();
 
     for (int iter = 0; iter < max_iters_; ++iter) {
       if (decay_step_ > 0 && iter > 0 && iter % decay_step_ == 0) {
@@ -77,6 +78,16 @@ public:
 
         epoch_loss += batch_loss_sum;
       }
+
+      CudaScalar epoch_loss_avg = epoch_loss / static_cast<CudaScalar>(total_samples);
+      if (tol_ > static_cast<CudaScalar>(0) && std::isfinite(prev_epoch_loss_avg)) {
+        CudaScalar denom = std::max(static_cast<CudaScalar>(1), std::abs(prev_epoch_loss_avg));
+        CudaScalar rel_impr = std::abs(prev_epoch_loss_avg - epoch_loss_avg) / denom;
+
+        if (rel_impr < tol_) break;
+      }
+
+      prev_epoch_loss_avg = epoch_loss_avg;
     }
   }
 
