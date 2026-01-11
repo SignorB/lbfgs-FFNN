@@ -5,6 +5,8 @@
 #include <cmath>
 #include <fstream>
 #include <Eigen/Dense> 
+#include <iostream>
+
 
 using VectorXr = Eigen::Matrix<Real, Eigen::Dynamic, 1>;
 using MatrixXr = Eigen::Matrix<Real, Eigen::Dynamic, Eigen::Dynamic>;
@@ -16,13 +18,14 @@ extern "C" {
     int enzyme_out;
 }
 
-constexpr unsigned int net_size = 100;
+constexpr unsigned int net_size = 30;
 using MyPINN = PINN<
     Dense<2, net_size, Tanh>,
     Dense<net_size, net_size, Tanh>,
     Dense<net_size, net_size, Tanh>,
     Dense<net_size, 1, Linear> 
 >;
+
 
 Real diff_input(const Real* xt_ptr, const Real* p, int index) {
     Real input_grad[2] = {0.0, 0.0};
@@ -32,13 +35,14 @@ Real diff_input(const Real* xt_ptr, const Real* p, int index) {
     return input_grad[index];
 }
 
+
 Real calc_ux(const Real* xt_ptr, const Real* p) {
     return diff_input(xt_ptr, p, 0);
 }
 
 Real pde_residual(Real x, Real t, const Real* p) {
     Real xt[2] = {x, t};
-    Real nu = 0.3 / M_PI; 
+    Real nu = 0.01 / M_PI; 
 
     Real u = MyPINN::forward_static(xt, p);
     Real ut = diff_input(xt, p, 1);
@@ -54,15 +58,18 @@ Real pde_residual(Real x, Real t, const Real* p) {
     return ut + u * ux - nu * uxx;
 }
 
-struct Point { Real x, t; };
+struct Point { 
+    Real x, t; 
+    Real target; 
+};
+
 struct Data { 
     std::vector<Point> collocation; 
-    std::vector<Point> initial;      
+    std::vector<Point> initial;       
     std::vector<Point> boundary;    
 };
 
 Real loss_function(Real* p, Data* data) {
-   
     
     Real loss_ic = 0.0;
     Real loss_bc = 0.0;
@@ -72,20 +79,23 @@ Real loss_function(Real* p, Data* data) {
     size_t N_bc = data->boundary.size();
     size_t N_pde = data->collocation.size();
     
-    for (auto& pt : data->initial) {
+
+    for (const auto& pt : data->initial) {
         Real u = MyPINN::forward_static(&(pt.x), p); 
-        Real target = std::sin(M_PI * pt.x);
-        loss_ic += (u - target) * (u - target);
+        Real diff = u - pt.target; 
+        loss_ic += diff * diff;
     }
     if(N_ic > 0) loss_ic = loss_ic / N_ic;
 
-    for (auto& pt : data->boundary) {
+
+    for (const auto& pt : data->boundary) {
         Real u = MyPINN::forward_static(&(pt.x), p);
         loss_bc += u * u;
     }
     if(N_bc > 0) loss_bc = loss_bc / N_bc;
     
-    for (auto& pt : data->collocation) {
+    // PDE Loop
+    for (const auto& pt : data->collocation) {
         Real r = pde_residual(pt.x, pt.t, p);
         loss_pde += r * r;
     }
@@ -93,58 +103,58 @@ Real loss_function(Real* p, Data* data) {
     
     const Real w_ic = 1.0;
     const Real w_bc = 2.0;
-    const Real w_pde = 4.0;
+    const Real w_pde = 10.0;
     
 
-    std::cout << " | PDE: " << loss_pde 
-              << " | IC: " << loss_ic 
-              << " | BC: " << loss_bc 
-              << " | N: " << N_pde << std::endl;
-    
-
+    std::cout << loss_pde << " " << loss_ic << " " << loss_bc << std::endl;
     return w_bc * loss_bc + w_ic * loss_ic + w_pde * loss_pde;
 }
 
 int main() {
-    std::cout << "=== Burgers PINN con Enzyme ===\n";
+    std::cout << "=== Burgers PINN con Enzyme (Optimized) ===\n";
     
     MyPINN net;
     Data data;
 
     Real dx = 0.001;
     Real dt = 0.005;
-    Real int_dx = 0.03;
+    Real int_dx = 0.01;
     Real int_dt = 0.06;
     Real X = 1.0;
     Real T = 1.0;
     
-    for(Real x=-1; x<=X; x+=dx) data.initial.push_back({x, 0.0});
+    // IC
+    for(Real x=-1; x<=X; x+=dx) {
+        Real target_val = std::sin(M_PI * x);
+        data.initial.push_back({x, 0.0, target_val});
+    }
     
+    // BC
     for(Real t=0; t<=T; t+=dt) {
-        data.boundary.push_back({-1.0, t});
-        data.boundary.push_back({1.0, t});
+        data.boundary.push_back({-1.0, t, 0.0});
+        data.boundary.push_back({1.0, t, 0.0});
     }
 
     for(Real x=-1; x<=X; x+=int_dx)
         for(Real t=0; t<=1; t+=int_dt)
-            data.collocation.push_back({x, t});
+            data.collocation.push_back({x, t, 0.0});
 
     auto solver = std::make_shared<LBFGS<VectorXr, MatrixXr>>();
     solver->setHistorySize(128);    
     solver->setMaxLineIters(150);   
     solver->setArmijoMaxIter(80);   
 
-    solver->setMaxIterations(300);
+    solver->setMaxIterations(300); 
 
     VectorXr w = Eigen::Map<VectorXr>(net.params.data(), MyPINN::TotalParams);
     
     w = solver->solve_with_enzyme<loss_function>(w, &data);
 
-    std::cout << "outputing file...";
+    std::cout << "outputing file..." << std::endl;
     std::ofstream outFile("burgers_test_extrapolation.csv");
     outFile << "x,t,u,type\n"; 
 
-
+    // Snapshot t={0, 0.5, 1.0}
     for (Real t : {0.0f, 0.5f, 1.0f}) {
       for (Real x = -1.0; x <= 1.0; x += 0.02) {
         Real xt[2] = {x, t};
@@ -153,8 +163,6 @@ int main() {
       }
     }
 
-
-
     for (Real x : {-1.5f, 1.5f}) {
       for (Real t = 0.0; t <= 1.0; t += 0.2) {
         Real xt[2] = {x, t};
@@ -162,8 +170,6 @@ int main() {
         outFile << x << "," << t << "," << u << ",1\n";
       }
     }
-
-
 
     for (Real t = 1.1; t <= 1.5; t += 0.1) {
       for (Real x = -1.0; x <= 1.0; x += 0.05) {
@@ -176,6 +182,5 @@ int main() {
     outFile.close();
     std::cout << "File 'burgers_test_extrapolation.csv' generated.\n";
     
-   
     return 0;
 }
