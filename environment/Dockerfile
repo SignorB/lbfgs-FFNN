@@ -1,11 +1,6 @@
-
-
-FROM docker.io/nvidia/cuda:12.6.3-devel-ubuntu22.04
+FROM docker.io/nvidia/cuda:11.5.2-devel-ubuntu20.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-
-
-
 
 RUN apt-get update && apt-get install -y \
     wget \
@@ -17,6 +12,12 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     zlib1g-dev \
     libeigen3-dev \
+    ca-certificates \
+    gnupg \
+    && wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] https://apt.llvm.org/focal/ llvm-toolchain-focal-15 main" > /etc/apt/sources.list.d/llvm15.list \
+    && apt-get update \
+    && apt-get install -y \
     clang-15 \
     llvm-15 \
     llvm-15-dev \
