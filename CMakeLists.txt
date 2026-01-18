@@ -54,10 +54,10 @@ target_link_libraries(test_burgers PRIVATE Eigen3::Eigen autodiff::autodiff)
 
   target_compile_options(test_burgers PRIVATE 
     -O3
-    -march=native          # <--- FONDAMENTALE: Usa AVX/AVX2/AVX512 della tua CPU
-    -ffast-math            # <--- MOLTO IMPORTANTE: Velocizza tanh, exp e calcoli floating point
-    -fno-math-errno        # <--- Evita controlli inutili sugli errori matematici
-    -DNDEBUG               # <--- CRUCIALE PER EIGEN: Disabilita assert e controlli di range
+    -march=native 
+    -ffast-math   
+    -fno-math-errno  
+    -DNDEBUG         
     "SHELL:-Xclang -load -Xclang ${ENZYME_PATH}"
 )
 
