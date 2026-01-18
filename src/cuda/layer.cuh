@@ -12,6 +12,8 @@ public:
   int in() const { return in_; }
   int out() const { return out_; }
   size_t params_size() const { return static_cast<size_t>(out_) * in_ + out_; }
+  size_t weights_size() const { return static_cast<size_t>(out_) * in_; }
+  size_t bias_size() const { return static_cast<size_t>(out_); }
 
   void bind(CudaScalar *params, CudaScalar *grads) {
     params_ptr_ = params;
@@ -49,8 +51,7 @@ public:
 
     if (prev_grad) {
       cublas_check(cublasSgemm(handle.get(), CUBLAS_OP_T, CUBLAS_OP_N, in_, batch, out_, &alpha, W, out_, next_grad, out_,
-                               &beta, prev_grad, in_),
-                   "cublasSgemm dX");
+                               &beta, prev_grad, in_), "cublasSgemm dX");
     }
   }
 
@@ -58,6 +59,10 @@ private:
   int in_ = 0, out_ = 0;
   ActivationType act_ = ActivationType::Linear;
   CudaScalar *params_ptr_ = nullptr, *grads_ptr_ = nullptr;
+
+public:
+  const CudaScalar *params_ptr() const { return params_ptr_; }
+  const CudaScalar *grads_ptr() const { return grads_ptr_; }
 };
 
 } // namespace cuda_mlp

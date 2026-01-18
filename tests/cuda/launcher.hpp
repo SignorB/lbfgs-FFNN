@@ -114,29 +114,13 @@ public:
 
       std::string log_filename = config.name + "_history.csv";
       std::ofstream log_file(log_filename);
-      log_file << "Iteration,Time(s),TrainLoss,TrainAcc,TestLoss,TestAcc\n";
 
       auto start_time = std::chrono::steady_clock::now();
-      int iter_count = 0;
 
       auto loss_grad =
           [&](const Scalar *params, Scalar *grad, const Scalar *input, const Scalar *target, int batch) -> Scalar {
         Scalar loss = network_.compute_loss_and_grad(input, target, batch);
         device_copy(grad, network_.grads_data(), network_.params_size());
-
-        if (iter_count % config.log_interval == 0 || iter_count == 0) {
-          cudaDeviceSynchronize();
-          auto now = std::chrono::steady_clock::now();
-          double elapsed = std::chrono::duration<double>(now - start_time).count();
-          Scalar test_loss = network_.compute_loss_and_grad(d_test_x_.data(), d_test_y_.data(), dataset_.test_size());
-          Scalar grad_norm = 0;
-
-          log_file << iter_count << "," << elapsed << "," << loss << "," << test_loss << "," << grad_norm << "\n";
-          if (iter_count % 100 == 0) {
-            std::cout << "Iter " << iter_count << " | T: " << elapsed << "s | Loss: " << loss << std::endl;
-          }
-        }
-        iter_count++;
         return loss;
       };
       solver->solve(network_.params_size(),
@@ -154,7 +138,7 @@ public:
 
       summary_file << config.name << "," << (config.optimizer == OptimizerType::LBFGS ? "LBFGS" : "GD") << "," << total_time
                    << "," << final_train.mse << "," << final_train.accuracy << "," << final_test.mse << ","
-                   << final_test.accuracy << "," << iter_count << "\n";
+                   << final_test.accuracy << "," << solver->iterations() << "\n";
 
       log_file.close();
       std::cout << "Done: " << config.name << " \nTrain Acc: " << final_train.accuracy

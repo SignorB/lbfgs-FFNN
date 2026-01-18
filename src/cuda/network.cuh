@@ -4,7 +4,9 @@
 #include "device_buffer.cuh"
 #include "kernels.cuh"
 #include "layer.cuh"
+#include <cmath>
 #include <random>
+#include <utility>
 #include <vector>
 
 namespace cuda_mlp {
@@ -18,7 +20,7 @@ public:
     params_size_ += layers_.back().params_size();
   }
 
-  void bindParams(unsigned int seed = 42) {
+  void bindParams(unsigned int seed = 2341) {
     params_.resize(params_size_);
     grads_.resize(params_size_);
 
@@ -30,9 +32,12 @@ public:
       layer.bind(params_.data() + offset, grads_.data() + offset);
       CudaScalar std_dev = layer.init_stddev();
       std::normal_distribution<CudaScalar> dist(0.0f, std_dev);
-      for (size_t i = 0; i < layer.params_size(); ++i) {
+      size_t weights_count = layer.out() * layer.in();
+      size_t bias_count = layer.out();
+      for (size_t i = 0; i < weights_count; ++i)
         host_params[offset + i] = dist(gen);
-      }
+      for (size_t i = 0; i < bias_count; ++i)
+        host_params[offset + weights_count + i] = 0.0f;
       offset += layer.params_size();
     }
 

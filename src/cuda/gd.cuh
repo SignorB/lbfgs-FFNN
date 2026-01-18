@@ -23,8 +23,12 @@ public:
       int total_samples,
       const LossGradFun &loss_grad) override {
 
-    if (n <= 0 || params == nullptr) return;
+    if (n <= 0 || params == nullptr) {
+      last_iterations_ = 0;
+      return;
+    }
 
+    last_iterations_ = 0;
     DeviceBuffer<CudaScalar> grad(n);
 
     DeviceBuffer<CudaScalar> velocity(n);
@@ -32,11 +36,13 @@ public:
       device_set_zero(velocity.data(), n);
     }
 
+    if (recorder_) recorder_->reset();
     CudaScalar loss = loss_grad(params, grad.data(), input, target, total_samples);
     CudaScalar effective_lr = lr_;
     effective_lr /= static_cast<CudaScalar>(total_samples);
     loss /= static_cast<CudaScalar>(total_samples);
 
+    int iterations_done = 0;
     for (int iter = 0; iter < max_iters_; ++iter) {
       CudaScalar grad_norm = device_nrm2(handle_, grad.data(), n);
       if (grad_norm < tol_) break;
@@ -49,7 +55,11 @@ public:
         device_axpy(handle_, n, -effective_lr, grad.data(), params);
       }
       loss = loss_grad(params, grad.data(), input, target, total_samples);
+      CudaScalar grad_norm_after = device_nrm2(handle_, grad.data(), n);
+      if (recorder_) recorder_->record(iterations_done, loss, grad_norm_after);
+      iterations_done++;
     }
+    last_iterations_ = iterations_done;
   }
 
 private:

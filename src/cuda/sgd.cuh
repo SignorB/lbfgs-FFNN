@@ -34,24 +34,29 @@ public:
       int total_samples,
       const LossGradFun &loss_grad) override {
 
-    if (n <= 0 || params == nullptr) return;
+    if (n <= 0 || params == nullptr) {
+      last_iterations_ = 0;
+      return;
+    }
     if (input_dim_ == 0 || output_dim_ == 0) {
-      std::cerr << "Error: Dimensions not set for SGD. Call setDimensions() first.\n";
+      std::cerr << "Error: Dimensions not set for SGD\n";
+      last_iterations_ = 0;
       return;
     }
 
+    last_iterations_ = 0;
     DeviceBuffer<CudaScalar> grad(n);
     DeviceBuffer<CudaScalar> velocity(n);
 
-    if (momentum_ > 0.0f) {
-      device_set_zero(velocity.data(), n);
-    }
+    if (momentum_ > 0.0f) device_set_zero(velocity.data(), n);
+
+    if (recorder_) recorder_->reset();
 
     CudaScalar current_lr = lr_;
-
     int num_batches = (total_samples + batch_size_ - 1) / batch_size_;
     CudaScalar prev_epoch_loss_avg = std::numeric_limits<CudaScalar>::infinity();
 
+    int iterations_done = 0;
     for (int iter = 0; iter < max_iters_; ++iter) {
       if (decay_step_ > 0 && iter > 0 && iter % decay_step_ == 0) {
         current_lr *= decay_rate_;
@@ -88,7 +93,11 @@ public:
       }
 
       prev_epoch_loss_avg = epoch_loss_avg;
+      CudaScalar grad_norm = device_nrm2(handle_, grad.data(), n);
+      if (recorder_) recorder_->record(iterations_done, epoch_loss_avg, grad_norm);
+      iterations_done++;
     }
+    last_iterations_ = iterations_done;
   }
 
 private:
