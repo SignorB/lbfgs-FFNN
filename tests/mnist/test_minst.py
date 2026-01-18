@@ -17,7 +17,7 @@ OUTPUT_SIZE = 10
 LEARNING_RATE = 0.00001
 MOMENTUM = 0.9
 MAX_ITERATIONS = 2000
-DEVICE = torch.device("cpu")
+DEVICE = torch.device("cuda")
 
 def load_images(path, n):
     with open(path, 'rb') as f:
