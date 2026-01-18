@@ -7,225 +7,133 @@
 #include <Eigen/Eigen>
 #include <Eigen/IterativeLinearSolvers>
 
-/**
- * @brief Base class for iterative minimization algorithms.
- *
- * @tparam V Type used for vectors (e.g. Eigen::VectorXd).
- * @tparam M Type used for matrices (e.g. Eigen::MatrixXd).
- * @tparam Solver type used for solver (e.g. Eigen::ConjugateGradient)
- */
+extern "C" {
+    extern double __enzyme_autodiff(void*, ...);
+    extern int enzyme_dup;
+    extern int enzyme_const;
+    extern int enzyme_out;
+}
+
 template <typename V, typename M>
 class MinimizerBase {
-private:
 public:
-  /// Virtual destructor to allow proper cleanup in derived classes.
-  virtual ~MinimizerBase() = default;
+    virtual ~MinimizerBase() = default;
 
-  /**
-   * @brief Get the number of iterations performed by the last solve().
-   *
-   * @return Number of iterations actually performed.
-   */
-  int iterations() const noexcept {
-    return _iters;
-  }
+    int iterations() const noexcept { return _iters; }
+    double tolerance() const noexcept { return _tol; }
+    
+    void setMaxIterations(int max_iters) noexcept { _max_iters = max_iters; }
+    void setTolerance(double tol) noexcept { _tol = tol; }
+    void setInitialHessian(M b) noexcept { _B = b; }
+    void setHessian(const HessFun<V, M> &hessFun) noexcept { _hessFun = hessFun; }
+    void setArmijoMaxIter(double max_iter) noexcept { armijo_max_iter = max_iter; }
+    void setMaxLineIters(double max_iters) noexcept { max_line_iters = max_iters; }
+    void setHistorySize(size_t history_size) noexcept { m = history_size; }
 
-  /**
-   * @brief Get the current tolerance used as stopping criterion.
-   *
-   * @return Tolerance on the stopping condition.
-   */
-  double tolerance() const noexcept {
-    return _tol;
-  }
+    void setStochasticParams(int stochastic_m, int M_param, int L, int b, int b_H, double step_size) noexcept {
+        this->stochastic_m = stochastic_m;
+        this->M_param = M_param;
+        this->L = L;
+        this->b = b;
+        this->b_H = b_H;
+        this->step_size = step_size;
+    }
 
-  /**
-   * @brief Set the maximum number of iterations allowed in solve().
-   *
-   * @param max_iters Maximum number of iterations.
-   */
-  void setMaxIterations(int max_iters) noexcept {
-    _max_iters = max_iters;
-  }
+    virtual V solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient) = 0;
 
-  /**
-   * @brief Set the tolerance used as stopping criterion.
-   *
-   * Typically used as threshold on gradient norm or relative error.
-   *
-   * @param tol New tolerance value.
-   */
-  void setTolerance(double tol) noexcept { _tol = tol; }
+    V solve(V x, VecFun<autodiff::VectorXvar, autodiff::var> &f_ad) {
+        GradFun<V> gradient_wrapper = [&](V x_double) -> V {
+            autodiff::VectorXvar x_var = x_double.template cast<autodiff::var>();
+            autodiff::var y = f_ad(x_var);
+            Eigen::VectorXd grad = autodiff::gradient(y, x_var);
+            return grad;
+        };
 
-  /**
-   * @brief Set the initial guess for the Hessian matrix
-   *
-   * @param b Initial Hessian guess.
-   */
-  void setInitialHessian(M b) noexcept { _B = b; }
+        VecFun<V, double> f_double = [&](V x_val) {
+            autodiff::VectorXvar x_var = x_val.template cast<autodiff::var>();
+            return autodiff::val(f_ad(x_var));
+        };
 
-  /**
-   * @brief Set the Hessian function
-   *
-   * @param hessFun Function object returning the Hessian matrix.
-   */
-  void setHessian(const HessFun<V, M> &hessFun) noexcept { _hessFun = hessFun; }
+        return solve(x, f_double, gradient_wrapper);
+    }
 
-  /**
-   * @brief Set stochastic parameters (for stochastic solvers like SLBFGS).
-   *
-   * @param stochastic_m Number of minibatches per epoch.
-   * @param M_param Memory parameter for curvature pairs.
-   * @param L Frequency of Hessian updates.
-   * @param b Gradient minibatch size.
-   * @param b_H Hessian minibatch size.
-   * @param step_size Step size for updates.
-   */
-  void setStochasticParams(int stochastic_m, int M_param, int L, int b, int b_H, double step_size) noexcept {
-    this->stochastic_m = stochastic_m;
-    this->M_param = M_param;
-    this->L = L;
-    this->b = b;
-    this->b_H = b_H;
-    this->step_size = step_size;
-  }
+    template <auto Func, typename UserData>
+    V solve_with_enzyme(V x, UserData* data, bool data_is_const = true) {
+        VecFun<V, double> f_wrapper = [&](V val) -> double {
+            return Func(val.data(), data);
+        };
 
-  /**
-   * @brief Solve the minimization problem given an initial guess.
-   *
-   * This is the main entry point of any concrete minimization algorithm
-   * inheriting from this base class.
-   *
-   * @param x Initial guess for the minimizer; can be used as in/out.
-   * @param f Objective function to minimize, mapping V -> double.
-   * @param Gradient Function object returning the gradient of f, mapping V -> V.
-   *
-   * @return Approximate minimizer of the function f.
-   */
-  virtual V solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient) = 0;
+        GradFun<V> grad_wrapper = [&](V val) -> V {
+            V grad(val.size());
+            grad.setZero();
 
-  /**
-   * @brief Convenience overload: accept an autodiff objective and compute its gradient automatically.
-   *
-   * Wraps the autodiff loss f_ad(x_var) into a double-valued objective and gradient, then
-   * forwards to the core solve(x, f, grad).
-   */
-  V solve(V x, VecFun<autodiff::VectorXvar, autodiff::var> &f_ad) {
-    GradFun<V> gradient_wrapper = [&](V x_double) -> V {
-      autodiff::VectorXvar x_var = x_double.template cast<autodiff::var>();
+            if (data_is_const) {
+                __enzyme_autodiff((void*)Func, 
+                                  enzyme_dup, val.data(), grad.data(),
+                                  enzyme_const, data);
+            } else {
+                __enzyme_autodiff((void*)Func, 
+                                  enzyme_dup, val.data(), grad.data(),
+                                  enzyme_dup, data, (void*)0); 
+            }
+            return grad;
+        };
 
-      autodiff::var y = f_ad(x_var);
-
-      Eigen::VectorXd grad = autodiff::gradient(y, x_var);
-      return grad;
-    };
-
-    VecFun<V, double> f_double = [&](V x_val) {
-      autodiff::VectorXvar x_var = x_val.template cast<autodiff::var>();
-      return autodiff::val(f_ad(x_var));
-    };
-
-    return solve(x, f_double, gradient_wrapper);
-  }
+        return solve(x, f_wrapper, grad_wrapper);
+    }
 
 protected:
-  /// Maximum number of iterations allowed in the optimization loop.
-  unsigned int _max_iters = 1000;
+    unsigned int _max_iters = 1000;
+    unsigned int _iters = 0;
+    double _tol = 1.e-10;
+    M _B;
+    HessFun<V, M> _hessFun;
 
-  /// Number of iterations performed in the last call to solve().
-  unsigned int _iters = 0;
+    double armijo_max_iter = 20;
+    double max_line_iters = 50;
+    size_t m = 16;
+    double alpha_wolfe = 1e-3;
+    double c1 = 1e-4;
+    double c2 = 0.9;
+    double rho = 0.5;
 
-  /// Tolerance used as stopping criterion.
-  double _tol = 1.e-10;
+    int stochastic_m = 10;
+    int M_param = 10;
+    int L = 10;
+    int b = 10;
+    int b_H = 16;
+    double step_size = 0.01;
 
-  /// Hessian guess
-  M _B;
+    double line_search(V x, V p, VecFun<V, double> &f, GradFun<V> &Gradient) {
+        double f_old = f(x);
+        double grad_f_old = Gradient(x).dot(p);
+        double inf = std::numeric_limits<double>::infinity();
+        double alpha_min = 0.0;
+        double alpha_max = inf;
+        double alpha = 1.0;
 
-  HessFun<V, M> _hessFun;
+        for (int i = 0; i < max_line_iters; ++i) {
+            V x_new = x + alpha * p;
+            double f_new = f(x_new);
 
-  /// Maximum number of iterations allowed in Armijo line search (if used).
-  double armijo_max_iter = 20;
+            if (f_new > f_old + c1 * alpha * grad_f_old) {
+                alpha_max = alpha;
+                alpha = rho * (alpha_min + alpha_max);
+                continue;
+            }
 
-  /// Maximum number of iterations allowed in generic line search.
-  double max_line_iters = 50;
+            double grad_f_new_dot_p = Gradient(x_new).dot(p);
 
-  /// Memory size parameter (e.g. for L-BFGS methods).
-  size_t m = 16;
-
-  /// Initial step size guess for Wolfe line search.
-  double alpha_wolfe = 1e-3;
-
-  /// Parameter c1 in the Wolfe/Armijo condition.
-  double c1 = 1e-4;
-
-  /// Parameter c2 in the Wolfe curvature condition.
-  double c2 = 0.9;
-
-  /// Contraction factor used when shrinking the step size.
-  double rho = 0.5;
-
-  // Stochastic parameters
-  int stochastic_m = 10; // number of minibatches per epoch
-  int M_param = 10; // memory parameter
-  int L = 10; // frequency of Hessian updates
-  int b = 10; // gradient minibatch size
-  int b_H = 16; // Hessian minibatch size
-  double step_size = 0.01; // step size
-
-  /**
-   * @brief Perform a line search to find a suitable step length alpha.
-   *
-   * This routine attempts to find a step length @p alpha along direction @p p
-   * starting from point @p x such that (approximate) Wolfe conditions are
-   * satisfied:
-   * - sufficient decrease condition (controlled by @ref c1)
-   * - curvature condition (controlled by @ref c2)
-   *
-   * @param x Current point.
-   * @param p Search direction.
-   * @param f Objective function to minimize.
-   * @param Gradient Function object returning the gradient of f.
-   *
-   * @return Step length alpha found by the line search. If no suitable alpha
-   *         is found within @ref max_line_iters, the last tested alpha is
-   *         returned as a fallback.
-   */
-  double line_search(V x, V p, VecFun<V, double> &f, GradFun<V> &Gradient) {
-    double f_old = f(x);
-    double grad_f_old = Gradient(x).dot(p);
-
-    double inf = std::numeric_limits<double>::infinity();
-    double alpha_min = 0.0;
-    double alpha_max = inf;
-
-    double alpha = 1.0;
-
-    for (int i = 0; i < max_line_iters; ++i) {
-      V x_new = x + alpha * p;
-      double f_new = f(x_new);
-
-      // Armijo (sufficient decrease) condition
-      if (f_new > f_old + c1 * alpha * grad_f_old) {
-        alpha_max = alpha;
-        alpha = rho * (alpha_min + alpha_max);
-        continue;
-      }
-
-      double grad_f_new_dot_p = Gradient(x_new).dot(p);
-
-      // Curvature condition
-      if (grad_f_new_dot_p < c2 * grad_f_old) {
-        alpha_min = alpha;
-        if (alpha_max == inf)
-          alpha *= 2;
-        else
-          alpha = rho * (alpha_min + alpha_max);
-
-        continue;
-      }
-      return alpha;
+            if (grad_f_new_dot_p < c2 * grad_f_old) {
+                alpha_min = alpha;
+                if (alpha_max == inf)
+                    alpha *= 2;
+                else
+                    alpha = rho * (alpha_min + alpha_max);
+                continue;
+            }
+            return alpha;
+        }
+        return alpha;
     }
-    // Fallback: If no alpha is found, return the last one
-    return alpha;
-  }
 };
