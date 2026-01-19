@@ -65,6 +65,7 @@ if(ENABLE_CUDA)
         message(STATUS "CUDA compiler found. Enabled cuda tests.")
     else()
     message(WARNING "CUDA compiler not found. Skipping .cu sources.")
+    endif()
 endif()
 
 find_package(OpenMP)
