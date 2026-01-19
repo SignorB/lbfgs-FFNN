@@ -8,14 +8,33 @@
 
 namespace cuda_mlp {
 
+/**
+ * @brief Gradient descent with optional momentum
+ * @details
+ *   Minimizes a loss L(theta) using updates:
+ *   - Without momentum: theta_{k+1} = theta_k - lr * grad(L).
+ *   - With momentum: v_{k+1} = m * v_k - lr * grad(L), theta_{k+1} = theta_k + v_{k+1}.
+ */
 class CudaGD : public CudaMinimizerBase {
 public:
+  /// @brief Construct the optimizer
   explicit CudaGD(CublasHandle &handle) : CudaMinimizerBase(handle) {}
 
+  /// @brief Set the learning rate
   void setLearningRate(CudaScalar lr) { lr_ = lr; }
 
+  /// @brief Set the momentum factor in [0,1)
   void setMomentum(CudaScalar momentum) { momentum_ = momentum; }
 
+  /**
+   * @brief Run full-batch gradient descent
+   * @param n Number of parameters
+   * @param params Parameter vector (device)
+   * @param input Input batch (device)
+   * @param target Target batch (device)
+   * @param total_samples Number of samples in the full batch
+   * @param loss_grad Callback returning loss and gradient
+   */
   void solve(int n,
       CudaScalar *params,
       const CudaScalar *input,
@@ -37,9 +56,10 @@ public:
     }
 
     if (recorder_) recorder_->reset();
+    // Full-batch gradient and loss. loss_grad returns sum over samples.
     CudaScalar loss = loss_grad(params, grad.data(), input, target, total_samples);
-    CudaScalar effective_lr = lr_;
-    effective_lr /= static_cast<CudaScalar>(total_samples);
+    // Scale by batch size: we want average gradient and average loss.
+    CudaScalar effective_lr = lr_ / static_cast<CudaScalar>(total_samples);
     loss /= static_cast<CudaScalar>(total_samples);
 
     int iterations_done = 0;
@@ -48,10 +68,14 @@ public:
       if (grad_norm < tol_) break;
 
       if (momentum_ > 0.0f) {
+        // Momentum update:
+        // v <- m * v - lr * g
+        // x <- x + v
         device_scal(handle_, n, momentum_, velocity.data());
         device_axpy(handle_, n, -effective_lr, grad.data(), velocity.data());
         device_axpy(handle_, n, 1.0f, velocity.data(), params);
       } else {
+        // Plain GD: x <- x - lr * g
         device_axpy(handle_, n, -effective_lr, grad.data(), params);
       }
       loss = loss_grad(params, grad.data(), input, target, total_samples);
@@ -63,7 +87,8 @@ public:
   }
 
 private:
-  CudaScalar lr_ = 0.01f, momentum_ = 0.9f;
+  CudaScalar lr_ = 0.01f;      ///< Base learning rate
+  CudaScalar momentum_ = 0.9f; ///< Momentum factor
 };
 
 } // namespace cuda_mlp

@@ -10,23 +10,43 @@
 
 namespace cuda_mlp {
 
+/// @brief SGD with optional momentum and learning-rate decay
 class CudaSGD : public CudaMinimizerBase {
 public:
+  /// @brief Construct the optimizer
   explicit CudaSGD(CublasHandle &handle) : CudaMinimizerBase(handle) {}
 
+  /// @brief Set the base learning rate
   void setLearningRate(CudaScalar lr) { lr_ = lr; }
+  /// @brief Set the momentum factor in [0,1)
   void setMomentum(CudaScalar momentum) { momentum_ = momentum; }
+  /// @brief Set minibatch size
   void setBatchSize(int batch_size) { batch_size_ = batch_size; }
+  /**
+   * @brief Configure step-wise learning rate decay
+   * @param rate Multiplicative decay factor
+   * @param step_size Iterations between decays
+   */
   void setLearningRateDecay(CudaScalar rate, int step_size) {
     decay_rate_ = rate;
     decay_step_ = step_size;
   }
 
+  /// @brief Set the input/output dimensions to stride batches
   void setDimensions(int input_dim, int output_dim) {
     input_dim_ = input_dim;
     output_dim_ = output_dim;
   }
 
+  /**
+   * @brief Run SGD optimization
+   * @param n Number of parameters
+   * @param params Parameter vector (device)
+   * @param input Input data (device)
+   * @param target Target data (device)
+   * @param total_samples Total number of samples
+   * @param loss_grad Callback returning batch loss and gradient
+   */
   void solve(int n,
       CudaScalar *params,
       const CudaScalar *input,
@@ -74,10 +94,12 @@ public:
         CudaScalar effective_lr = current_lr / static_cast<CudaScalar>(current_batch_size);
 
         if (momentum_ > 0.0f) {
+          // v = momentum * v - lr * grad; params += v
           device_scal(handle_, n, momentum_, velocity.data());
           device_axpy(handle_, n, -effective_lr, grad.data(), velocity.data());
           device_axpy(handle_, n, 1.0f, velocity.data(), params);
         } else {
+          // params -= lr * grad
           device_axpy(handle_, n, -effective_lr, grad.data(), params);
         }
 
@@ -101,13 +123,14 @@ public:
   }
 
 private:
-  CudaScalar lr_ = 0.01f, momentum_ = 0.9f;
-  CudaScalar decay_rate_ = 1.0f;
-  int decay_step_ = 0;
+  CudaScalar lr_ = 0.01f;        ///< Base learning rate
+  CudaScalar momentum_ = 0.9f;   ///< Momentum factor
+  CudaScalar decay_rate_ = 1.0f; ///< Multiplicative decay factor
+  int decay_step_ = 0;           ///< Decay step interval
 
-  int batch_size_ = 64;
-  int input_dim_ = 0;
-  int output_dim_ = 0;
+  int batch_size_ = 64; ///< Minibatch size
+  int input_dim_ = 0;   ///< Input dimension (for batch slicing)
+  int output_dim_ = 0;  ///< Output dimension (for batch slicing)
 };
 
 } // namespace cuda_mlp

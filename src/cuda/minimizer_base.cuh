@@ -1,71 +1,56 @@
 #pragma once
 
-#include "common.cuh"
 #include "cublas_handle.cuh"
-#include "device_buffer.cuh"
+#include "iteration_recorder.cuh"
 #include <algorithm>
 #include <functional>
 #include <vector>
 
 namespace cuda_mlp {
 
-struct IterationRecorder {
-public:
-  void init(int capacity) {
-    if (capacity <= 0) return;
-    capacity_ = capacity;
-    loss_.resize(static_cast<size_t>(capacity));
-    grad_norm_.resize(static_cast<size_t>(capacity));
-    size_ = 0;
-  }
-
-  void reset() { size_ = 0; }
-
-  void record(int idx, CudaScalar loss, CudaScalar grad_norm) {
-    if (idx < 0 || idx >= capacity_) return;
-    cuda_check(cudaMemcpy(loss_.data() + idx, &loss, sizeof(CudaScalar), cudaMemcpyHostToDevice), "record loss");
-    cuda_check(
-        cudaMemcpy(grad_norm_.data() + idx, &grad_norm, sizeof(CudaScalar), cudaMemcpyHostToDevice), "record grad_norm");
-    size_ = std::max(size_, idx + 1);
-  }
-
-  void copy_to_host(std::vector<CudaScalar> &loss_out, std::vector<CudaScalar> &grad_norm_out) const {
-    loss_out.resize(size_);
-    grad_norm_out.resize(size_);
-    if (size_ == 0) return;
-    loss_.copy_to_host(loss_out.data(), size_);
-    grad_norm_.copy_to_host(grad_norm_out.data(), size_);
-  }
-
-  int size() const { return size_; }
-
-private:
-  DeviceBuffer<CudaScalar> loss_;
-  DeviceBuffer<CudaScalar> grad_norm_;
-  int capacity_ = 0;
-  int size_ = 0;
-};
-
+/// @brief Abstract base class for CUDA-based minimizers
 class CudaMinimizerBase {
 public:
+  /// @brief Loss and gradient callback signature
   using LossGradFun = std::function<CudaScalar(
       const CudaScalar *params, CudaScalar *grad, const CudaScalar *input, const CudaScalar *target, int batch)>;
+  /// @brief Optional per-iteration hook signature
   using IterHook = std::function<void(int)>;
 
+  /// @brief Construct with a cuBLAS handle reference
   explicit CudaMinimizerBase(CublasHandle &handle) : handle_(handle) {}
   virtual ~CudaMinimizerBase() = default;
 
+  /// @brief Return the number of iterations performed in the last solve
   int iterations() const noexcept { return last_iterations_; }
+  /// @brief Attach a recorder for loss/grad norm history
   void setRecorder(IterationRecorder *recorder) { recorder_ = recorder; }
 
+  /// @brief Set maximum number of iterations
   void setMaxIterations(int iters) { max_iters_ = iters; }
+  /// @brief Set stopping tolerance (interpretation depends on optimizer)
   void setTolerance(CudaScalar tol) { tol_ = tol; }
+  /**
+   * @brief Configure Armijo line search parameters
+   * @param max_iters Maximum line-search iterations
+   * @param c1 Armijo sufficient decrease constant
+   * @param rho Backtracking factor in (0,1)
+   */
   void setLineSearchParams(int max_iters, CudaScalar c1, CudaScalar rho) {
     max_line_iters_ = (max_iters < 1) ? 1 : max_iters;
     c1_ = c1;
     rho_ = rho;
   }
 
+  /**
+   * @brief Solve the optimization problem
+   * @param n Number of parameters
+   * @param params Parameter vector (device pointer)
+   * @param input Input data (device pointer)
+   * @param target Target data (device pointer)
+   * @param batch Batch size
+   * @param loss_grad Callback that returns loss and writes gradient
+   */
   virtual void solve(int n,
       CudaScalar *params,
       const CudaScalar *input,
@@ -74,11 +59,11 @@ public:
       const LossGradFun &loss_grad) = 0;
 
 protected:
-  CublasHandle &handle_;
-  int max_iters_ = 200, max_line_iters_ = 20;
-  CudaScalar tol_ = 1e-6f, c1_ = 1e-4f, rho_ = 0.5f;
-  int last_iterations_ = 0;
-  IterationRecorder *recorder_ = nullptr;
+  CublasHandle &handle_;                             ///< cuBLAS handle used by the optimizer
+  int max_iters_ = 200, max_line_iters_ = 20;        ///< Iteration limits
+  CudaScalar tol_ = 1e-6f, c1_ = 1e-4f, rho_ = 0.5f; ///< Stopping and line-search params
+  int last_iterations_ = 0;                          ///< Iterations performed in last run
+  IterationRecorder *recorder_ = nullptr;            ///< Optional recorder for diagnostics
 };
 
 } // namespace cuda_mlp

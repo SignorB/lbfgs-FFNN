@@ -6,34 +6,50 @@
 
 namespace cuda_mlp {
 
+/**
+ * @brief Set device memory to zero.
+ * @param ptr Device pointer.
+ * @param n Number of elements.
+ */
 inline void device_set_zero(CudaScalar *ptr, size_t n) {
   cuda_check(cudaMemset(ptr, 0, n * sizeof(CudaScalar)), "cudaMemset");
 }
 
+/**
+ * @brief Copy device-to-device.
+ * @param dst Destination device pointer.
+ * @param src Source device pointer.
+ * @param n Number of elements.
+ */
 inline void device_copy(CudaScalar *dst, const CudaScalar *src, size_t n) {
   cuda_check(cudaMemcpy(dst, src, n * sizeof(CudaScalar), cudaMemcpyDeviceToDevice), "cudaMemcpy DtoD");
 }
 
+/// @brief Compute dot product on device using cuBLAS.
 inline CudaScalar device_dot(CublasHandle &handle, const CudaScalar *x, const CudaScalar *y, int n) {
   CudaScalar result = 0.0f;
   cublas_check(cublasSdot(handle.get(), n, x, 1, y, 1, &result), "cublasSdot");
   return result;
 }
 
+/// @brief Compute Euclidean norm on device using cuBLAS.
 inline CudaScalar device_nrm2(CublasHandle &handle, const CudaScalar *x, int n) {
   CudaScalar result = 0.0f;
   cublas_check(cublasSnrm2(handle.get(), n, x, 1, &result), "cublasSnrm2");
   return result;
 }
 
+/// @brief y <- alpha * x + y (AXPY) on device using cuBLAS.
 inline void device_axpy(CublasHandle &handle, int n, CudaScalar alpha, const CudaScalar *x, CudaScalar *y) {
   cublas_check(cublasSaxpy(handle.get(), n, &alpha, x, 1, y, 1), "cublasSaxpy");
 }
 
+/// @brief Scale vector x <- alpha * x on device using cuBLAS.
 inline void device_scal(CublasHandle &handle, int n, CudaScalar alpha, CudaScalar *x) {
   cublas_check(cublasSscal(handle.get(), n, &alpha, x, 1), "cublasSscal");
 }
 
+/// @brief Supported activation functions.
 enum class ActivationType : int {
   Linear = 0,
   Tanh = 1,
@@ -41,6 +57,7 @@ enum class ActivationType : int {
   Sigmoid = 3,
 };
 
+/// @brief scaling factor for initialization.
 inline CudaScalar activation_scale(ActivationType act) {
   switch (act) {
   case ActivationType::ReLU:
@@ -53,6 +70,7 @@ inline CudaScalar activation_scale(ActivationType act) {
   }
 }
 
+/// @brief Kernel: add bias vector to column-major matrix.
 __global__ void add_bias_kernel(CudaScalar *z, const CudaScalar *b, int rows, int cols) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   int total = rows * cols;
@@ -62,6 +80,7 @@ __global__ void add_bias_kernel(CudaScalar *z, const CudaScalar *b, int rows, in
   }
 }
 
+/// @brief Kernel: apply activation in-place.
 __global__ void activation_kernel(CudaScalar *a, int n, int act) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < n) {
@@ -86,6 +105,7 @@ __global__ void activation_kernel(CudaScalar *a, int n, int act) {
   }
 }
 
+/// @brief Kernel: multiply gradient by activation derivative.
 __global__ void activation_deriv_kernel(CudaScalar *grad, const CudaScalar *a, int n, int act) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < n) {
@@ -112,6 +132,7 @@ __global__ void activation_deriv_kernel(CudaScalar *grad, const CudaScalar *a, i
   }
 }
 
+/// @brief Kernel: diff = output - target.
 __global__ void diff_kernel(const CudaScalar *output, const CudaScalar *target, CudaScalar *diff, int n) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < n) {
@@ -119,6 +140,7 @@ __global__ void diff_kernel(const CudaScalar *output, const CudaScalar *target, 
   }
 }
 
+/// @brief Kernel: sum columns (rows x cols) into a row vector.
 __global__ void sum_rows_kernel(const CudaScalar *mat, CudaScalar *out, int rows, int cols) {
   int row = blockIdx.x * blockDim.x + threadIdx.x;
   if (row < rows) {
@@ -130,6 +152,7 @@ __global__ void sum_rows_kernel(const CudaScalar *mat, CudaScalar *out, int rows
   }
 }
 
+/// @brief Launch add-bias kernel.
 inline void launch_add_bias(CudaScalar *z, const CudaScalar *b, int rows, int cols) {
   int total = rows * cols;
   int threads = 256;
@@ -138,6 +161,7 @@ inline void launch_add_bias(CudaScalar *z, const CudaScalar *b, int rows, int co
   cuda_check(cudaGetLastError(), "add_bias_kernel");
 }
 
+/// @brief Launch activation kernel.
 inline void launch_activation(CudaScalar *a, int n, ActivationType act) {
   int threads = 256;
   int blocks = (n + threads - 1) / threads;
@@ -145,6 +169,7 @@ inline void launch_activation(CudaScalar *a, int n, ActivationType act) {
   cuda_check(cudaGetLastError(), "activation_kernel");
 }
 
+/// @brief Launch activation-derivative kernel.
 inline void launch_activation_deriv(CudaScalar *grad, const CudaScalar *a, int n, ActivationType act) {
   int threads = 256;
   int blocks = (n + threads - 1) / threads;
@@ -152,6 +177,7 @@ inline void launch_activation_deriv(CudaScalar *grad, const CudaScalar *a, int n
   cuda_check(cudaGetLastError(), "activation_deriv_kernel");
 }
 
+/// @brief Launch diff kernel.
 inline void launch_diff(const CudaScalar *output, const CudaScalar *target, CudaScalar *diff, int n) {
   int threads = 256;
   int blocks = (n + threads - 1) / threads;
@@ -159,6 +185,7 @@ inline void launch_diff(const CudaScalar *output, const CudaScalar *target, Cuda
   cuda_check(cudaGetLastError(), "diff_kernel");
 }
 
+/// @brief Launch sum-rows kernel.
 inline void launch_sum_rows(const CudaScalar *mat, CudaScalar *out, int rows, int cols) {
   int threads = 256;
   int blocks = (rows + threads - 1) / threads;

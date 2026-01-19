@@ -11,11 +11,31 @@
 
 namespace cuda_mlp {
 
+/**
+ * @brief Limited-memory BFGS with Armijo backtracking line search
+ * @details
+ *   The L-BFGS method builds a low-rank approximation of the inverse Hessian
+ *   using the last m curvature pairs (s_k, y_k), where:
+ *     s_k = x_{k+1} - x_k
+ *     y_k = grad_{k+1} - grad_k
+ *   The search direction is computed with the two-loop recursion
+ */
 class CudaLBFGS : public CudaMinimizerBase {
 public:
+  /// @brief Construct the optimizer
   explicit CudaLBFGS(CublasHandle &handle) : CudaMinimizerBase(handle) {}
+  /// @brief Set the history size (memory)
   void setMemory(size_t m) { m_ = m; }
 
+  /**
+   * @brief Run L-BFGS optimization
+   * @param n Number of parameters
+   * @param params Parameter vector (device)
+   * @param input Input batch (device)
+   * @param target Target batch (device)
+   * @param batch Batch size
+   * @param loss_grad Callback returning loss and gradient
+   */
   void solve(int n,
       CudaScalar *params,
       const CudaScalar *input,
@@ -62,15 +82,19 @@ public:
       CudaScalar grad_norm = device_nrm2(handle_, grad.data(), n);
       if (grad_norm < tol_) break;
 
+      // Compute L-BFGS search direction p = -H_k * grad using two-loop recursion
       compute_direction_ring(grad, s_hist, y_hist, rho_hist, hist_head, hist_count, p, q, z);
       CudaScalar grad_dot_p = device_dot(handle_, grad.data(), p.data(), n);
       if (grad_dot_p >= CudaScalar{0}) {
+        // If p is not a descent direction, fall back to steepest descent
         device_copy(p.data(), grad.data(), n);
         device_scal(handle_, n, CudaScalar{-1}, p.data());
         grad_dot_p = -device_dot(handle_, grad.data(), grad.data(), n);
         reset_history();
       }
 
+      // Line search with Armijo condition:
+      // f(x + alpha p) <= f(x) + c1 * alpha * grad^T p
       CudaScalar alpha = (iter == 0) ? std::min(CudaScalar{1}, CudaScalar{1} / grad_norm) : CudaScalar{1};
       device_copy(x_backup.data(), params, n);
 
@@ -90,6 +114,7 @@ public:
           break;
         }
 
+        // Quadratic interpolation along the line (optional), fallback to backtracking
         CudaScalar denominator = CudaScalar{2} * (loss_new - loss - grad_dot_p * alpha);
         bool use_fallback = true;
 
@@ -114,14 +139,15 @@ public:
       if (m > 0) {
         const int slot = hist_head;
 
-        // s = params - x_backup
+        // s_k = x_{k+1} - x_k
         device_copy(s_hist[slot].data(), params, n);
         device_axpy(handle_, n, CudaScalar{-1}, x_backup.data(), s_hist[slot].data());
 
-        // y = grad_new - grad
+        // y_k = g_{k+1} - g_k
         device_copy(y_hist[slot].data(), grad_new.data(), n);
         device_axpy(handle_, n, CudaScalar{-1}, grad.data(), y_hist[slot].data());
 
+        // Curvature condition: y^T s > 0 to keep Hessian approx positive-definite
         CudaScalar ys = device_dot(handle_, y_hist[slot].data(), s_hist[slot].data(), n);
 
         if (ys > CudaScalar{1e-10}) {
@@ -132,7 +158,7 @@ public:
         }
       }
 
-
+      // Accept step: update gradient and loss for the next iteration
       device_copy(grad.data(), grad_new.data(), n);
       loss = loss_new;
 
@@ -146,6 +172,15 @@ public:
   }
 
 private:
+  /**
+   * @brief Compute p = -H_k * grad using a ring-buffer history
+   * @details Two-loop recursion:
+   *   q = grad
+   *   for i = k-1..k-m: alpha_i = rho_i * s_i^T q; q = q - alpha_i * y_i
+   *   z = gamma * q (initial Hessian scale)
+   *   for i = k-m..k-1: beta_i = rho_i * y_i^T z; z = z + s_i * (alpha_i - beta_i)
+   *   p = -z
+   */
   void compute_direction_ring(const DeviceBuffer<CudaScalar> &grad,
       const std::vector<DeviceBuffer<CudaScalar>> &s_hist,
       const std::vector<DeviceBuffer<CudaScalar>> &y_hist,
@@ -158,6 +193,7 @@ private:
     const int n = static_cast<int>(grad.size());
 
     if (hist_count <= 0 || s_hist.empty()) {
+      // No history: steepest descent direction
       device_copy(p.data(), grad.data(), n);
       device_scal(handle_, n, CudaScalar{-1}, p.data());
       return;
@@ -185,6 +221,7 @@ private:
     const int last = phys(hist_count - 1);
     CudaScalar ys = device_dot(handle_, s_hist[last].data(), y_hist[last].data(), n);
     CudaScalar yy = device_dot(handle_, y_hist[last].data(), y_hist[last].data(), n);
+    // Initial Hessian scaling gamma = (s^T y)/(y^T y)
     CudaScalar gamma = (yy > CudaScalar{0}) ? (ys / yy) : CudaScalar{1};
 
     device_copy(z.data(), q.data(), n);
@@ -201,7 +238,7 @@ private:
     device_scal(handle_, n, CudaScalar{-1}, p.data());
   }
 
-  size_t m_ = 16;
+  size_t m_ = 16; ///< History size for curvature pairs
 };
 
 } // namespace cuda_mlp

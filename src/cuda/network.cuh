@@ -11,15 +11,27 @@
 
 namespace cuda_mlp {
 
+/// @brief Feed-forward dense network with GPU-backed parameters and gradients
 class CudaNetwork {
 public:
+  /// @brief Construct a network tied to a cuBLAS handle
   explicit CudaNetwork(CublasHandle &handle) : handle_(handle) {}
 
+  /**
+   * @brief Append a layer definition
+   * @param in Input dimension
+   * @param out Output dimension
+   * @param act Activation function
+   */
   void addLayer(int in, int out, ActivationType act) {
     layers_.emplace_back(in, out, act);
     params_size_ += layers_.back().params_size();
   }
 
+  /**
+   * @brief Allocate parameter/gradient buffers and initialize weights
+   * @param seed RNG seed for weight initialization
+   */
   void bindParams(unsigned int seed = 2341) {
     params_.resize(params_size_);
     grads_.resize(params_size_);
@@ -45,14 +57,24 @@ public:
     zeroGrads();
   }
 
+  /// @brief Total number of parameters
   size_t params_size() const { return params_size_; }
+  /// @brief Output dimension of the last layer
   int output_size() const { return layers_.empty() ? 0 : layers_.back().out(); }
 
+  /// @brief Mutable device pointer to parameters
   CudaScalar *params_data() { return params_.data(); }
+  /// @brief Mutable device pointer to gradients
   CudaScalar *grads_data() { return grads_.data(); }
 
+  /// @brief Zero all gradients
   void zeroGrads() { device_set_zero(grads_.data(), grads_.size()); }
 
+  /**
+   * @brief Forward pass only (no gradient computation)
+   * @param input Input batch (in x batch)
+   * @param batch Batch size
+   */
   void forward_only(const CudaScalar *input, int batch) {
     ensure_buffers(batch);
     const CudaScalar *current = input;
@@ -64,6 +86,13 @@ public:
     last_batch_ = batch;
   }
 
+  /**
+   * @brief Compute MSE loss and gradients for a batch
+   * @param input Input batch (in x batch)
+   * @param target Target batch (out x batch)
+   * @param batch Batch size
+   * @return Mean squared error loss
+   */
   CudaScalar compute_loss_and_grad(const CudaScalar *input, const CudaScalar *target, int batch) {
     forward_only(input, batch);
 
@@ -87,6 +116,7 @@ public:
 
     return loss;
   }
+  /// @brief Copy the latest output activations to host memory
   void copy_output_to_host(CudaScalar *host, size_t n) const {
     if (activations_.empty()) {
       return;
@@ -94,9 +124,11 @@ public:
     activations_.back().copy_to_host(host, n);
   }
 
+  /// @brief Batch size used in the last forward pass
   int last_batch() const { return last_batch_; }
 
 private:
+  /// @brief Ensure intermediate buffers match the current batch
   void ensure_buffers(int batch) {
     if (batch == last_batch_ && activations_.size() == layers_.size()) {
       return;
@@ -113,13 +145,13 @@ private:
     }
   }
 
-  CublasHandle &handle_;
-  std::vector<CudaDenseLayer> layers_;
-  DeviceBuffer<CudaScalar> params_, grads_;
-  size_t params_size_ = 0;
+  CublasHandle &handle_;                    ///< cuBLAS handle for GEMMs
+  std::vector<CudaDenseLayer> layers_;      ///< Layer stack
+  DeviceBuffer<CudaScalar> params_, grads_; ///< Flat parameter and gradient buffers
+  size_t params_size_ = 0;                  ///< Total parameter count
 
-  std::vector<DeviceBuffer<CudaScalar>> activations_, deltas_;
-  int last_batch_ = 0;
+  std::vector<DeviceBuffer<CudaScalar>> activations_, deltas_; ///< Per-layer buffers
+  int last_batch_ = 0;                                         ///< Cached batch size for buffers
 };
 
 } // namespace cuda_mlp
