@@ -41,46 +41,29 @@ foreach(TARGET ${CXX_TARGETS})
     target_link_libraries(${TARGET} PRIVATE autodiff::autodiff Eigen3::Eigen)
 endforeach()
 
-set(ENZYME_PATH "/usr/src/Enzyme/enzyme/build/Enzyme/ClangEnzyme-15.so")
+option(ENABLE_CUDA "Enable CUDA support" OFF)
 
-if(NOT EXISTS "${ENZYME_PATH}")
-    message(FATAL_ERROR "ENZYME NOT FOUND :( !!")
-endif()
-add_executable(test_burgers tests/burgers/test_burgers.cpp)
+if(ENABLE_CUDA)
+    include(CheckLanguage)
+    check_language(CUDA)
 
-set_target_properties(test_burgers PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF)
-target_link_libraries(test_burgers PRIVATE Eigen3::Eigen autodiff::autodiff)
+    if(CMAKE_CUDA_COMPILER)
+        enable_language(CUDA)
+        set(CMAKE_CUDA_STANDARD 17)
+        set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+        find_package(CUDAToolkit REQUIRED)
 
+        if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+            set(CMAKE_CUDA_ARCHITECTURES 86)
+        endif()
 
-  target_compile_options(test_burgers PRIVATE 
-    -O3
-    -march=native 
-    -ffast-math   
-    -fno-math-errno  
-    -DNDEBUG         
-    "SHELL:-Xclang -load -Xclang ${ENZYME_PATH}"
-)
+        add_executable(test_mnist_cuda tests/cuda/mnist.cu)
+        add_executable(test_fashion_cuda tests/cuda/fashion.cu)
+        target_link_libraries(test_mnist_cuda PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
+        target_link_libraries(test_fashion_cuda PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
 
-include(CheckLanguage)
-check_language(CUDA)
-
-if(CMAKE_CUDA_COMPILER)
-    enable_language(CUDA)
-    set(CMAKE_CUDA_STANDARD 17)
-    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-    find_package(CUDAToolkit REQUIRED)
-
-    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-        set(CMAKE_CUDA_ARCHITECTURES 86)
-    endif()
-
-    add_executable(test_mnist_cuda tests/cuda/mnist.cu)
-    add_executable(test_fashion_cuda tests/cuda/fashion.cu)
-    target_link_libraries(test_mnist_cuda PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
-    target_link_libraries(test_fashion_cuda PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
-
-    message(STATUS "CUDA compiler found. Enabled cuda tests.")
-else()
+        message(STATUS "CUDA compiler found. Enabled cuda tests.")
+    else()
     message(WARNING "CUDA compiler not found. Skipping .cu sources.")
 endif()
 

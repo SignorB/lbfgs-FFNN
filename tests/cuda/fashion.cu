@@ -1,6 +1,7 @@
 #include "../mnist/mnist_loader.hpp"
 #include "launcher.hpp"
 #include <iostream>
+#include <string>
 #include <vector>
 
 using Scalar = cuda_mlp::CudaScalar;
@@ -9,6 +10,7 @@ int main() {
   int n_train = 60000;
   int n_test = 10000;
 
+  // Load Fashion-MNIST dataset into host matrices.
   std::cout << "Loading Fashion-MNIST..." << std::endl;
   auto train_x = MNISTLoader::loadImages<Scalar>("../tests/fashion-mnist/FashionMNIST/raw/train-images-idx3-ubyte", n_train);
   auto train_y = MNISTLoader::loadLabels<Scalar>("../tests/fashion-mnist/FashionMNIST/raw/train-labels-idx1-ubyte", n_train);
@@ -20,6 +22,7 @@ int main() {
   cuda_mlp::ExperimentRunner<Scalar> runner;
   runner.setData(data);
 
+  // Define a deeper network for Fashion-MNIST.
   runner.buildNetwork({{784, 1024, cuda_mlp::ActivationType::ReLU},
       {1024, 1024, cuda_mlp::ActivationType::ReLU},
       {1024, 512, cuda_mlp::ActivationType::ReLU},
@@ -29,57 +32,42 @@ int main() {
 
   std::vector<cuda_mlp::RunConfig> runs;
 
-//   runs.push_back({.name = "GD_LR_0.01",
-//       .optimizer = cuda_mlp::OptimizerType::GD,
-//       .max_iters = 1000,
-//       .gd_lr = 0.01f,
-//       .log_interval = 10});
-//   runs.push_back({.name = "GD_LR_0.05",
-//       .optimizer = cuda_mlp::OptimizerType::GD,
-//       .max_iters = 1000,
-//       .gd_lr = 0.05f,
-//       .log_interval = 10});
-//   runs.push_back(
-//       {.name = "GD_LR_0.1", .optimizer = cuda_mlp::OptimizerType::GD, .max_iters = 1000, .gd_lr = 0.1f, .log_interval = 10});
-//   runs.push_back(
-//       {.name = "GD_LR_0.2", .optimizer = cuda_mlp::OptimizerType::GD, .max_iters = 1000, .gd_lr = 0.2f, .log_interval = 10});
-  runs.push_back({.name = "LBFGS_m05",
-      .optimizer = cuda_mlp::OptimizerType::LBFGS,
-      .max_iters = 500,
-      .lbfgs_memory = 5,
-      .log_interval = 5});
-  runs.push_back({.name = "LBFGS_m10",
-      .optimizer = cuda_mlp::OptimizerType::LBFGS,
-      .max_iters = 500,
-      .lbfgs_memory = 10,
-      .log_interval = 5});
-  runs.push_back({.name = "LBFGS_m20",
-      .optimizer = cuda_mlp::OptimizerType::LBFGS,
-      .max_iters = 500,
-      .lbfgs_memory = 20,
-      .log_interval = 5});
-  runs.push_back({.name = "LBFGS_m50",
-      .optimizer = cuda_mlp::OptimizerType::LBFGS,
-      .max_iters = 500,
-      .lbfgs_memory = 50,
-      .log_interval = 5});
-  runs.push_back({.name = "LBFGS_m100",
-      .optimizer = cuda_mlp::OptimizerType::LBFGS,
-      .max_iters = 500,
-      .lbfgs_memory = 100,
-      .log_interval = 5});
-  runs.push_back({.name = "LBFGS_m200",
-      .optimizer = cuda_mlp::OptimizerType::LBFGS,
-      .max_iters = 500,
-      .lbfgs_memory = 200,
-      .log_interval = 5});
-//   runs.push_back(
-//       {.name = "GD_Long", .optimizer = cuda_mlp::OptimizerType::GD, .max_iters = 3000, .gd_lr = 0.05f, .log_interval = 50});
-//   runs.push_back({.name = "LBFGS_Long",
-//       .optimizer = cuda_mlp::OptimizerType::LBFGS,
-//       .max_iters = 1000,
-//       .lbfgs_memory = 20,
-//       .log_interval = 10});
+  const int lbfgs_iters = 300;
+  const float lbfgs_tol = 1e-4f;
+  const size_t lbfgs_memories[] = {5, 10, 20, 50};
+  for (size_t mem : lbfgs_memories) {
+    runs.push_back(cuda_mlp::RunConfig{.name = "LBFGS_m" + std::to_string(mem) + "_it" + std::to_string(lbfgs_iters),
+        .optimizer = cuda_mlp::OptimizerType::LBFGS,
+        .max_iters = lbfgs_iters,
+        .tolerance = lbfgs_tol,
+        .lbfgs_memory = mem,
+        .log_interval = 5});
+  }
+
+  const int sgd_epochs = 120;
+  const int sgd_batch = 256;
+  const int sgd_decay_step = 20;
+  const float sgd_tol = 1e-4f;
+  const float sgd_lrs[] = {0.05f, 0.01f, 0.005f};
+  const float sgd_moms[] = {0.0f, 0.9f};
+  const float sgd_decays[] = {1.0f, 0.98f};
+  for (float lr : sgd_lrs) {
+    for (float momentum : sgd_moms) {
+      for (float decay : sgd_decays) {
+        runs.push_back(cuda_mlp::RunConfig{
+            .name = "SGD_lr" + std::to_string(lr) + "_m" + std::to_string(momentum) + "_d" + std::to_string(decay),
+            .optimizer = cuda_mlp::OptimizerType::SGD,
+            .max_iters = sgd_epochs,
+            .tolerance = sgd_tol,
+            .batch_size = sgd_batch,
+            .gd_lr = lr,
+            .gd_momentum = momentum,
+            .sgd_decay_rate = decay,
+            .sgd_decay_step = sgd_decay_step,
+            .log_interval = 10});
+      }
+    }
+  }
   std::cout << "Starting Benchmark Suite..." << std::endl;
   runner.runExperiments(runs, "final_benchmark_summary.csv");
 
