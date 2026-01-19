@@ -1,14 +1,16 @@
 #include "../../src/launcher_unified.hpp"
 #include "../../src/cuda/cublas_handle.cuh"
+#include "../../src/common.hpp"
 #include "mnist_loader.hpp"
 #include <iostream>
+#include <omp.h>
 
-using Backend = CudaBackend; 
+using Backend = CpuBackend; 
 
 int main() {
-
-
-    UnifiedLauncher<Backend> launcher;
+  Eigen::setNbThreads(4);
+  checkParallelism();
+  UnifiedLauncher<Backend> launcher;
 
     std::cout << "Building Network..." << std::endl;
     launcher.addLayer<784, 128, Tanh>();
@@ -38,15 +40,16 @@ int main() {
     config.name = "MNIST_Unified_Test";
     config.max_iters = 500;
     config.tolerance = 1.5e-4;
-    config.batch_size = 64;   
+    config.batch_size = 32;   
     config.b_H_param = 96;    
     config.L_param = 20;      
     config.m_param = 10;      
-    config.learning_rate = 0.0000001; 
+    config.learning_rate = 0.01;
+    config.log_interval = 10;
 
     // Strategy Pattern: Instantiate Optimizer
     std::cout << "Instantiating Optimizer Strategy..." << std::endl;
-    UnifiedGD<Backend> optimizer; 
+    UnifiedLBFGS<Backend> optimizer; 
     
     std::cout << "Starting Training..." << std::endl;
     launcher.train(optimizer, config);

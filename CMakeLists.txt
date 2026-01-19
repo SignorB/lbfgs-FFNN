@@ -13,7 +13,6 @@ if(result)
 else()
     message(WARNING "LTO not supported: ${output}")
 endif()
-
 add_compile_options(
     $<$<COMPILE_LANGUAGE:CXX>:-O3>
     $<$<COMPILE_LANGUAGE:CXX>:-march=native>
@@ -21,6 +20,7 @@ add_compile_options(
     $<$<COMPILE_LANGUAGE:CXX>:-Wall>
     $<$<COMPILE_LANGUAGE:CXX>:-Wextra>
     $<$<COMPILE_LANGUAGE:CXX>:-ftemplate-depth=32768>
+    $<$<COMPILE_LANGUAGE:CXX>:-DNDEBUG>
 )
 
 find_package(Eigen3 REQUIRED)
@@ -68,7 +68,7 @@ if(ENABLE_CUDA)
         add_executable(test_mnist_unified tests/mnist/main2.cpp)
         target_link_libraries(test_mnist_cuda PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
         target_link_libraries(test_fashion_cuda PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
-        target_link_libraries(test_mnist_unified PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
+
         message(STATUS "CUDA compiler found. Enabled cuda tests.")
     else()
     message(WARNING "CUDA compiler not found. Skipping .cu sources.")
@@ -80,7 +80,13 @@ find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
     message(STATUS "OpenMP found! Enabling Eigen parallelization.")
     target_link_libraries(test_mnist PRIVATE OpenMP::OpenMP_CXX)
+    target_link_libraries(test_mnist_unified PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart OpenMP::OpenMP_CXX)
     target_compile_definitions(test_mnist PRIVATE EIGEN_USE_OPENMP)
+    target_compile_definitions(test_mnist_unified PRIVATE EIGEN_USE_OPENMP)
+    
+    if(ENABLE_CUDA)
+        target_compile_options(test_mnist_unified PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler -fopenmp>)
+    endif()
 else()
     message(WARNING "OpenMP not found. Eigen will run in single-thread mode.")
 endif()

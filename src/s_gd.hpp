@@ -23,19 +23,21 @@ class StochasticGradientDescent : public MinimizerBase<V, M> {
 
 public:
   using S_VecFun = std::function<double(const V &, const V &, const V &)>;
-  using S_GradFun = std::function<void(const V &, const V &, const V &, V &)>;
+  // MODIFICATO: La funzione gradiente ora riceve il vettore dei pesi, gli INDICI del batch e il vettore gradiente in output
+  using BatchGradFun = std::function<void(const V &, const std::vector<size_t>&, V &)>;
 
   StochasticGradientDescent() = default;
 
   // same minibatch sampler signature as in SLBFGS
   static std::vector<size_t> sample_minibatch_indices(const size_t N, size_t batch_size, std::mt19937 &rng);
 
+  // MODIFICATO: accetta BatchGradFun invece di S_GradFun
   void setData(const std::vector<V> &inputs, const std::vector<V> &targets, const S_VecFun &f,
-               const S_GradFun &g) {
+               const BatchGradFun &g) {
     _inputs = inputs;
     _targets = targets;
     _sf = f;
-    _sg = g;
+    _batch_g = g;
   }
 
   void setLogFile(const std::string &path) { _logfile = path; }
@@ -53,16 +55,17 @@ public:
   }
 
   // Stochastic solver using minibatches previously set with setData
-  V stochastic_solve(int m /*minibatches per epoch*/, int b /*batch size*/, double step, bool verbose = false,
+  V stochastic_solve(const V& init_w, int m /*minibatches per epoch*/, int b /*batch size*/, double step, bool verbose = false,
                      int print_every = 50) {
     if (_inputs.empty() || _targets.empty()) {
       throw std::runtime_error("No data set for StochasticGradientDescent::stochastic_solve");
     }
 
     int N = static_cast<int>(_inputs.size());
-    int dim = static_cast<int>(_inputs[0].size());
+    // int dim = static_cast<int>(_inputs[0].size()); // INCORRECT INFERENCE
 
-    V w = V::Zero(dim);
+    V w = init_w;
+    int dim = static_cast<int>(w.size());
 
     // prepare logfile (truncate each run)
     std::ofstream logfile;
@@ -84,13 +87,9 @@ public:
         auto minibatch_indices = sample_minibatch_indices(N, b, rng);
 
         V grad_est = V::Zero(dim);
-        V tmp = V::Zero(dim);
-        for (size_t ii = 0; ii < minibatch_indices.size(); ++ii) {
-          size_t idx = minibatch_indices[ii];
-          _sg(w, _inputs[idx], _targets[idx], tmp);
-          grad_est += tmp;
-        }
-        grad_est /= static_cast<double>(b);
+        
+        // MODIFICATO: Chiamata unica batch-wise
+        _batch_g(w, minibatch_indices, grad_est);
 
         // update
         w = w - step * grad_est;
@@ -126,7 +125,7 @@ private:
   std::vector<V> _inputs;
   std::vector<V> _targets;
   S_VecFun _sf;
-  S_GradFun _sg;
+  BatchGradFun _batch_g; // MODIFICATO: Tipo batch
   std::string _logfile;
 };
 
