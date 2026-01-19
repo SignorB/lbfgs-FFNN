@@ -41,6 +41,10 @@ foreach(TARGET ${CXX_TARGETS})
     target_link_libraries(${TARGET} PRIVATE autodiff::autodiff Eigen3::Eigen)
 endforeach()
 
+
+
+
+
 option(ENABLE_CUDA "Enable CUDA support" OFF)
 
 if(ENABLE_CUDA)
@@ -57,11 +61,14 @@ if(ENABLE_CUDA)
             set(CMAKE_CUDA_ARCHITECTURES 86)
         endif()
 
+        set_source_files_properties(tests/mnist/main2.cpp PROPERTIES LANGUAGE CUDA)
+
         add_executable(test_mnist_cuda tests/cuda/mnist.cu)
         add_executable(test_fashion_cuda tests/cuda/fashion.cu)
+        add_executable(test_mnist_unified tests/mnist/main2.cpp)
         target_link_libraries(test_mnist_cuda PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
         target_link_libraries(test_fashion_cuda PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
-
+        target_link_libraries(test_mnist_unified PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
         message(STATUS "CUDA compiler found. Enabled cuda tests.")
     else()
     message(WARNING "CUDA compiler not found. Skipping .cu sources.")

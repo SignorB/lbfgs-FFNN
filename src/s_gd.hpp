@@ -106,7 +106,7 @@ public:
 //      mean_loss /= static_cast<double>(N);
 
       if (logfile.is_open()) {
-        double logv = (mean_loss > 0.0) ? std::log10(loss) : -INFINITY;
+        double logv = (loss > 0.0) ? std::log10(loss) : -INFINITY;
         logfile << passes << "," << loss << "," << logv << "," << (_iters + 1) << std::endl;
         logfile.flush();
       }
