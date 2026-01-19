@@ -150,14 +150,16 @@ public:
 
       std::vector<Scalar> loss_hist;
       std::vector<Scalar> grad_hist;
-      recorder.copy_to_host(loss_hist, grad_hist);
+      std::vector<Scalar> time_hist;
+      recorder.copy_to_host(loss_hist, grad_hist, time_hist);
       if (!loss_hist.empty()) {
-        log_file << "Iteration,Loss,GradNorm\n";
+        log_file << "Iteration,Loss,GradNorm,TimeMs\n";
         int stride = std::max(1, config.log_interval);
         for (size_t i = 0; i < loss_hist.size(); i += static_cast<size_t>(stride)) {
           Scalar loss = loss_hist[i];
           Scalar grad = (i < grad_hist.size()) ? grad_hist[i] : static_cast<Scalar>(0);
-          log_file << i << "," << loss << "," << grad << "\n";
+          Scalar time_ms = (i < time_hist.size()) ? time_hist[i] : static_cast<Scalar>(0);
+          log_file << i << "," << loss << "," << grad << "," << time_ms << "\n";
         }
       }
 

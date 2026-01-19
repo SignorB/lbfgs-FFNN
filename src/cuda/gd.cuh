@@ -62,8 +62,18 @@ public:
     CudaScalar effective_lr = lr_ / static_cast<CudaScalar>(total_samples);
     loss /= static_cast<CudaScalar>(total_samples);
 
+    cudaEvent_t iter_start{};
+    cudaEvent_t iter_stop{};
+    CudaScalar elapsed_ms = 0.0f;
+    const bool timing = (recorder_ != nullptr);
+    if (timing) {
+      cuda_check(cudaEventCreate(&iter_start), "cudaEventCreate iter_start");
+      cuda_check(cudaEventCreate(&iter_stop), "cudaEventCreate iter_stop");
+    }
+
     int iterations_done = 0;
     for (int iter = 0; iter < max_iters_; ++iter) {
+      if (timing) cuda_check(cudaEventRecord(iter_start), "cudaEventRecord iter_start");
       CudaScalar grad_norm = device_nrm2(handle_, grad.data(), n);
       if (grad_norm < tol_) break;
 
@@ -80,8 +90,19 @@ public:
       }
       loss = loss_grad(params, grad.data(), input, target, total_samples);
       CudaScalar grad_norm_after = device_nrm2(handle_, grad.data(), n);
-      if (recorder_) recorder_->record(iterations_done, loss, grad_norm_after);
+      if (timing) {
+        cuda_check(cudaEventRecord(iter_stop), "cudaEventRecord iter_stop");
+        cuda_check(cudaEventSynchronize(iter_stop), "cudaEventSynchronize iter_stop");
+        float iter_ms = 0.0f;
+        cuda_check(cudaEventElapsedTime(&iter_ms, iter_start, iter_stop), "cudaEventElapsedTime iter");
+        elapsed_ms += static_cast<CudaScalar>(iter_ms);
+      }
+      if (recorder_) recorder_->record(iterations_done, loss, grad_norm_after, elapsed_ms);
       iterations_done++;
+    }
+    if (timing) {
+      cuda_check(cudaEventDestroy(iter_start), "cudaEventDestroy iter_start");
+      cuda_check(cudaEventDestroy(iter_stop), "cudaEventDestroy iter_stop");
     }
     last_iterations_ = iterations_done;
   }
