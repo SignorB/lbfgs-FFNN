@@ -82,7 +82,7 @@ public:
         current_lr *= decay_rate_;
       }
 
-      CudaScalar epoch_loss = 0.0f;
+      CudaScalar epoch_loss_sum = 0.0f;
 
       for (int b = 0; b < num_batches; ++b) {
         int start_idx = b * batch_size_;
@@ -90,7 +90,7 @@ public:
         const CudaScalar *batch_input = input + (start_idx * input_dim_);
         const CudaScalar *batch_target = target + (start_idx * output_dim_);
 
-        CudaScalar batch_loss_sum = loss_grad(params, grad.data(), batch_input, batch_target, current_batch_size);
+        CudaScalar batch_loss_avg = loss_grad(params, grad.data(), batch_input, batch_target, current_batch_size);
         CudaScalar effective_lr = current_lr / static_cast<CudaScalar>(current_batch_size);
 
         if (momentum_ > 0.0f) {
@@ -103,10 +103,10 @@ public:
           device_axpy(handle_, n, -effective_lr, grad.data(), params);
         }
 
-        epoch_loss += batch_loss_sum;
+        epoch_loss_sum += batch_loss_avg * static_cast<CudaScalar>(current_batch_size);
       }
 
-      CudaScalar epoch_loss_avg = epoch_loss / static_cast<CudaScalar>(total_samples);
+      CudaScalar epoch_loss_avg = epoch_loss_sum / static_cast<CudaScalar>(total_samples);
       if (tol_ > static_cast<CudaScalar>(0) && std::isfinite(prev_epoch_loss_avg)) {
         CudaScalar denom = std::max(static_cast<CudaScalar>(1), std::abs(prev_epoch_loss_avg));
         CudaScalar rel_impr = std::abs(prev_epoch_loss_avg - epoch_loss_avg) / denom;
@@ -115,8 +115,11 @@ public:
       }
 
       prev_epoch_loss_avg = epoch_loss_avg;
-      CudaScalar grad_norm = device_nrm2(handle_, grad.data(), n);
-      if (recorder_) recorder_->record(iterations_done, epoch_loss_avg, grad_norm);
+      if (recorder_) {
+        CudaScalar full_loss_avg = loss_grad(params, grad.data(), input, target, total_samples);
+        CudaScalar grad_norm = device_nrm2(handle_, grad.data(), n);
+        recorder_->record(iterations_done, full_loss_avg, grad_norm);
+      }
       iterations_done++;
     }
     last_iterations_ = iterations_done;

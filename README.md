@@ -95,11 +95,11 @@ The directory structure is as follows:
 ./amsc
   ├── build/           # Build artifacts
   ├── src/             # Source code
+  │   ├── lbfgs.hpp             # Deterministic L-BFGS
   │   ├── s_lbfgs.hpp           # Stochastic L-BFGS implementation (Serial)
   │   ├── s_lbfgs_parallel.hpp  # Stochastic L-BFGS implementation (OpenMP)
   │   ├── s_gd.hpp              # Stochastic Gradient Descent implementation
-  │   ├── lbfgs.hpp             # Deterministic L-BFGS
-  │   ├── network.hpp           # Neural Network utilities (for testing/application)
+  │   └──  network.hpp           # Neural Network utilities (for testing/application)
   └── ...
 ```
 
