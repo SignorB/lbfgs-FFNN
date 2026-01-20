@@ -1,0 +1,7 @@
+<map id="src/cuda/iteration_recorder.cuh" name="src/cuda/iteration_recorder.cuh">
+<area shape="rect" id="node1" title=" " alt="" coords="154,5,289,47"/>
+<area shape="rect" id="node2" href="$minimizer__base_8cuh.html" title=" " alt="" coords="148,95,295,136"/>
+<area shape="rect" id="node3" href="$gd_8cuh.html" title=" " alt="" coords="5,184,128,211"/>
+<area shape="rect" id="node4" href="$lbfgs_8cuh.html" title=" " alt="" coords="152,184,291,211"/>
+<area shape="rect" id="node5" href="$sgd_8cuh.html" title=" " alt="" coords="315,184,445,211"/>
+</map>

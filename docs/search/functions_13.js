@@ -1,6 +1,4 @@
 var searchData=
 [
-  ['_7elayer_259',['~Layer',['../classLayer.html#a57e5a4a6ec188de4e7b8c894aac254ea',1,'Layer']]],
-  ['_7eminimizerbase_260',['~MinimizerBase',['../classMinimizerBase.html#aee97af4d9bf327fe893d2836e03f7e01',1,'MinimizerBase']]],
-  ['_7epinn_261',['~PINN',['../classPINN.html#a09b63898c2a38866876b2507ae9391f3',1,'PINN']]]
+  ['zerograds_407',['zeroGrads',['../classcuda__mlp_1_1CudaNetwork.html#a51471ca3cd6a835b8e764f79e5c6ea48',1,'cuda_mlp::CudaNetwork::zeroGrads()'],['../classNetwork.html#a34b57375dba95e10a3557c15f2cd00fc',1,'Network::zeroGrads()']]]
 ];

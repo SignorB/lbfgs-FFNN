@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['hessfun_295',['HessFun',['../common_8hpp.html#af007578ce12550f73ee628857ee196f0',1,'common.hpp']]]
+  ['gradfun_455',['GradFun',['../common_8hpp.html#a2272f95fed28a31b6e1e1d8c4e4ae07a',1,'common.hpp']]]
 ];

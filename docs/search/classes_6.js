@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['pinn_161',['PINN',['../classPINN.html',1,'']]]
+  ['minimizerbase_246',['MinimizerBase',['../classMinimizerBase.html',1,'']]]
 ];

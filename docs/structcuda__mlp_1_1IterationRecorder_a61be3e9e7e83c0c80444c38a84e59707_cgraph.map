@@ -1,0 +1,5 @@
+<map id="cuda_mlp::IterationRecorder::record" name="cuda_mlp::IterationRecorder::record">
+<area shape="rect" id="node1" title="Record a loss and gradient norm at an index." alt="" coords="5,27,212,69"/>
+<area shape="rect" id="node2" href="$namespacecuda__mlp.html#ad0151301985ef1c9d60bc1a132c548d3" title="Check a CUDA API call and abort with a message on failure." alt="" coords="264,5,433,32"/>
+<area shape="rect" id="node3" href="$classcuda__mlp_1_1DeviceBuffer.html#a22e12ab998f4a967adf2a4d7891abbf3" title="Mutable raw pointer to device memory." alt="" coords="260,57,437,98"/>
+</map>

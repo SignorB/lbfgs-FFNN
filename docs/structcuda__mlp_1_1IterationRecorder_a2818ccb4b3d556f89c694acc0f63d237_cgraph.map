@@ -1,0 +1,6 @@
+<map id="cuda_mlp::IterationRecorder::init" name="cuda_mlp::IterationRecorder::init">
+<area shape="rect" id="node1" title="Allocate buffers for up to capacity iterations." alt="" coords="5,27,212,69"/>
+<area shape="rect" id="node2" href="$classcuda__mlp_1_1DeviceBuffer.html#a0494fd8a47d94eadca1d642cc92f4090" title="Resize the buffer, reallocating if needed." alt="" coords="260,27,437,69"/>
+<area shape="rect" id="node3" href="$namespacecuda__mlp.html#ad0151301985ef1c9d60bc1a132c548d3" title="Check a CUDA API call and abort with a message on failure." alt="" coords="489,5,659,32"/>
+<area shape="rect" id="node4" href="$classcuda__mlp_1_1DeviceBuffer.html#aadeda0c95ac1348986fc0e030e2139bc" title="Free device memory, if allocated." alt="" coords="485,57,663,98"/>
+</map>

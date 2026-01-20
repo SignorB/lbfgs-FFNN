@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['params_285',['params',['../classPINN.html#a26885db5aa2543c45b58936cf28a8905',1,'PINN::params()'],['../classPINN.html#a90b78ab401b5e6bc1be11d46d0ce860b',1,'PINN::params()']]]
+  ['outsize_441',['OutSize',['../structDense.html#a15487da6c2f3a88bcc56405efdcd907b',1,'Dense']]]
 ];

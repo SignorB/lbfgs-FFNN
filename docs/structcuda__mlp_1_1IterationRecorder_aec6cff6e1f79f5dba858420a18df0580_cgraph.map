@@ -1,0 +1,5 @@
+<map id="cuda_mlp::IterationRecorder::copy_to_host" name="cuda_mlp::IterationRecorder::copy_to_host">
+<area shape="rect" id="node1" title="Copy recorded values (including time) back to host vectors." alt="" coords="5,5,212,47"/>
+<area shape="rect" id="node2" href="$classcuda__mlp_1_1DeviceBuffer.html#a0fd428a4132d244b37454b4f0a15e0ba" title="Copy from device to host." alt="" coords="260,5,437,47"/>
+<area shape="rect" id="node3" href="$namespacecuda__mlp.html#ad0151301985ef1c9d60bc1a132c548d3" title="Check a CUDA API call and abort with a message on failure." alt="" coords="485,13,655,39"/>
+</map>

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['gradfun_294',['GradFun',['../common_8hpp.html#a2272f95fed28a31b6e1e1d8c4e4ae07a',1,'common.hpp']]]
+  ['defaultsolvert_454',['DefaultSolverT',['../bfgs_8hpp.html#a4bc4fc3e330e912426aa9cf9a6c586bf',1,'bfgs.hpp']]]
 ];

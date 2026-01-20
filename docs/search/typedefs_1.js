@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['defaultsolvert_293',['DefaultSolverT',['../bfgs_8hpp.html#a4bc4fc3e330e912426aa9cf9a6c586bf',1,'bfgs.hpp']]]
+  ['cudascalar_453',['CudaScalar',['../namespacecuda__mlp.html#a97b413e947c6702ad0157e46d429853e',1,'cuda_mlp']]]
 ];

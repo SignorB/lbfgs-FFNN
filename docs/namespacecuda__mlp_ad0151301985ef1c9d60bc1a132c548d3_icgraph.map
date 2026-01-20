@@ -1,0 +1,25 @@
+<map id="cuda_mlp::cuda_check" name="cuda_mlp::cuda_check">
+<area shape="rect" id="node1" title="Check a CUDA API call and abort with a message on failure." alt="" coords="752,479,921,506"/>
+<area shape="rect" id="node2" href="$classcuda__mlp_1_1DeviceBuffer.html#ae303134f5eb2b62dbeafa95413eae7df" title="Copy from host to device, resizing as needed." alt="" coords="255,5,432,47"/>
+<area shape="rect" id="node4" href="$classcuda__mlp_1_1DeviceBuffer.html#a0fd428a4132d244b37454b4f0a15e0ba" title="Copy from device to host." alt="" coords="511,611,688,652"/>
+<area shape="rect" id="node6" href="$namespacecuda__mlp.html#a215a45960999b21de6294e29d6d8a532" title="Copy device&#45;to&#45;device." alt="" coords="512,559,687,586"/>
+<area shape="rect" id="node7" href="$classcuda__mlp_1_1CudaLBFGS.html#a91a3611d456c2958b236125b444aec3f" title="Run L&#45;BFGS optimization." alt="" coords="259,501,427,543"/>
+<area shape="rect" id="node8" href="$namespacecuda__mlp.html#a86bc78b6dc35b5f0b80dcf5d110249c5" title="Set device memory to zero." alt="" coords="500,341,699,367"/>
+<area shape="rect" id="node9" href="$classcuda__mlp_1_1CudaGD.html#af4f49873129a98cea837fa7284448d9a" title="Run full&#45;batch gradient descent." alt="" coords="249,305,438,331"/>
+<area shape="rect" id="node10" href="$classcuda__mlp_1_1CudaSGD.html#a87c5b29a57e0361ca6186edcc7eb0dd7" title="Run SGD optimization." alt="" coords="262,421,425,463"/>
+<area shape="rect" id="node13" href="$namespacecuda__mlp.html#af291a8274e02d62ea667b6dd7c595bc6" title="Launch activation kernel." alt="" coords="495,677,703,703"/>
+<area shape="rect" id="node15" href="$namespacecuda__mlp.html#ab07f4773848ee1516671610a538c8ae2" title="Launch activation&#45;derivative kernel." alt="" coords="495,779,703,820"/>
+<area shape="rect" id="node17" href="$namespacecuda__mlp.html#abd24fc3c966441401f0f06926743e3e4" title="Launch add&#45;bias kernel." alt="" coords="499,727,700,754"/>
+<area shape="rect" id="node18" href="$namespacecuda__mlp.html#af5b0352656cf797de01a1e71906318a8" title="Launch diff kernel." alt="" coords="517,239,681,266"/>
+<area shape="rect" id="node19" href="$namespacecuda__mlp.html#a171790bf97e28b10641775d966d496e0" title="Launch sum&#45;rows kernel." alt="" coords="495,845,704,871"/>
+<area shape="rect" id="node20" href="$structcuda__mlp_1_1IterationRecorder.html#a61be3e9e7e83c0c80444c38a84e59707" title="Record a loss and gradient norm at an index." alt="" coords="496,443,703,484"/>
+<area shape="rect" id="node21" href="$classcuda__mlp_1_1DeviceBuffer.html#a0494fd8a47d94eadca1d642cc92f4090" title="Resize the buffer, reallocating if needed." alt="" coords="511,123,688,164"/>
+<area shape="rect" id="node3" href="$classcuda__mlp_1_1CudaNetwork.html#aeb5df95bf3d986b04277996b6c32f9ef" title="Allocate parameter/gradient buffers and initialize weights." alt="" coords="8,64,189,105"/>
+<area shape="rect" id="node5" href="$structcuda__mlp_1_1IterationRecorder.html#a31658d32b8eca6e51d90284e6ac12228" title="Copy recorded values back to host vectors." alt="" coords="240,611,447,652"/>
+<area shape="rect" id="node11" href="$classcuda__mlp_1_1CudaNetwork.html#a51471ca3cd6a835b8e764f79e5c6ea48" title="Zero all gradients." alt="" coords="253,356,434,397"/>
+<area shape="rect" id="node12" href="$classcuda__mlp_1_1CudaNetwork.html#ab1348dfef5ae549707bea86ae88a0e02" title="Compute MSE loss and gradients for a batch." alt="" coords="5,301,192,343"/>
+<area shape="rect" id="node14" href="$classcuda__mlp_1_1CudaDenseLayer.html#ab9377e28aecd00f8fa1b4ffc64ec42ff" title="Forward pass: Z = W*X + b, A = act(Z)" alt="" coords="242,704,445,745"/>
+<area shape="rect" id="node16" href="$classcuda__mlp_1_1CudaDenseLayer.html#a8859956e7919c0f3304fcb4438510e9a" title="Backward pass: compute dW, db, and optionally dX." alt="" coords="242,795,445,836"/>
+<area shape="rect" id="node22" href="$classcuda__mlp_1_1DeviceBuffer.html#a2b1bd9a5d6d7d797873d92a960388296" title="Construct and allocate a buffer of size n." alt="" coords="255,123,432,164"/>
+<area shape="rect" id="node23" href="$structcuda__mlp_1_1IterationRecorder.html#a2818ccb4b3d556f89c694acc0f63d237" title="Allocate buffers for up to capacity iterations." alt="" coords="240,188,447,229"/>
+</map>

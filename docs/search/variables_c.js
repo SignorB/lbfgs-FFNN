@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['scale_287',['scale',['../structLinear.html#a18f8c088b2e19c6be7e3d9fdff5eb8e9',1,'Linear::scale()'],['../structReLU.html#ad8ba5eb49d5ce202b51d59de9b1a5db2',1,'ReLU::scale()'],['../structSigmoid.html#a4d95cfd0468ed69de13fe03af63165ea',1,'Sigmoid::scale()'],['../structTanh.html#a84fae62acf304b64e5315a5b81fa9a7b',1,'Tanh::scale()']]],
-  ['step_5fsize_288',['step_size',['../classMinimizerBase.html#a64615c43036b5a3cebaf28479c26b1dc',1,'MinimizerBase']]],
-  ['stochastic_5fm_289',['stochastic_m',['../classMinimizerBase.html#a28e43a7aedac2fbce5c8da26037d352f',1,'MinimizerBase']]]
+  ['recorder_5f_443',['recorder_',['../classcuda__mlp_1_1CudaMinimizerBase.html#a5e97e5375f90a4c1ea135e27e2bc3cb7',1,'cuda_mlp::CudaMinimizerBase']]],
+  ['rho_444',['rho',['../classMinimizerBase.html#ae63ace2e6048a73df9260fdb5bd45117',1,'MinimizerBase']]],
+  ['rho_5f_445',['rho_',['../classcuda__mlp_1_1CudaMinimizerBase.html#aca70deaae39f6bf3d3e9d29faf8b3297',1,'cuda_mlp::CudaMinimizerBase']]]
 ];

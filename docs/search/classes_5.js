@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['network_159',['Network',['../classNetwork.html',1,'']]],
-  ['newton_160',['Newton',['../classNewton.html',1,'']]]
+  ['layer_243',['Layer',['../classLayer.html',1,'']]],
+  ['lbfgs_244',['LBFGS',['../classLBFGS.html',1,'']]],
+  ['linear_245',['Linear',['../structLinear.html',1,'']]]
 ];

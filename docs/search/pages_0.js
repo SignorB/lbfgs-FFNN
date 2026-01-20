@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['l_2dbfgs_20and_20stochastic_20l_2dbfgs_20for_20optimization_305',['L-BFGS and Stochastic L-BFGS for Optimization',['../index.html',1,'']]]
+  ['l_2dbfgs_20and_20stochastic_20l_2dbfgs_20for_20optimization_473',['L-BFGS and Stochastic L-BFGS for Optimization',['../index.html',1,'']]]
 ];

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['real_297',['Real',['../pinn__network_8hpp.html#a4b04262b81aa7d31eb5d2f607e2a35de',1,'Real():&#160;pinn_network.hpp'],['../pinn__network__batch_8hpp.html#a4b04262b81aa7d31eb5d2f607e2a35de',1,'Real():&#160;pinn_network_batch.hpp']]]
+  ['iterhook_457',['IterHook',['../classcuda__mlp_1_1CudaMinimizerBase.html#a7b27e6d747b15784d15a81bbad23469c',1,'cuda_mlp::CudaMinimizerBase']]]
 ];

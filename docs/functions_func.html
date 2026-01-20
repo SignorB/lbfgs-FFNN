@@ -65,7 +65,8 @@ $(function() {
 
 <h3><a id="index_a"></a>- a -</h3><ul>
 <li>addLayer()
-: <a class="el" href="classNetwork.html#a81b5a2f7f4aae59126d3c05f235cac4a">Network</a>
+: <a class="el" href="classcuda__mlp_1_1CudaNetwork.html#a6dfe3c5761ad5cb3293e1510eebdb971">cuda_mlp::CudaNetwork</a>
+, <a class="el" href="classNetwork.html#a81b5a2f7f4aae59126d3c05f235cac4a">Network</a>
 </li>
 <li>apply()
 : <a class="el" href="structLinear.html#a0b8e4b3aa1bc3b738891b3a9d240ef67">Linear</a>
@@ -78,16 +79,22 @@ $(function() {
 
 <h3><a id="index_b"></a>- b -</h3><ul>
 <li>backward()
-: <a class="el" href="classDenseLayer.html#ab14f1c3ab72609c6722695deb83480fe">DenseLayer&lt; In, Out, Activation &gt;</a>
+: <a class="el" href="classcuda__mlp_1_1CudaDenseLayer.html#a8859956e7919c0f3304fcb4438510e9a">cuda_mlp::CudaDenseLayer</a>
+, <a class="el" href="classDenseLayer.html#ab14f1c3ab72609c6722695deb83480fe">DenseLayer&lt; In, Out, Activation &gt;</a>
 , <a class="el" href="classLayer.html#a7ebf2f021978e7f03bb7ec3aa9b7c989">Layer</a>
 , <a class="el" href="classNetwork.html#abeb2180a9041dd7ccf78f35edfd5cf57">Network</a>
 </li>
+<li>bias_size()
+: <a class="el" href="classcuda__mlp_1_1CudaDenseLayer.html#ab88c2378b6fcc9826178bc980b35f1ab">cuda_mlp::CudaDenseLayer</a>
+</li>
 <li>bind()
-: <a class="el" href="classDenseLayer.html#ac48af75679d3a019c68a69066cea7425">DenseLayer&lt; In, Out, Activation &gt;</a>
+: <a class="el" href="classcuda__mlp_1_1CudaDenseLayer.html#a246c62e7e31df0e4e5cce8469bd526bd">cuda_mlp::CudaDenseLayer</a>
+, <a class="el" href="classDenseLayer.html#ac48af75679d3a019c68a69066cea7425">DenseLayer&lt; In, Out, Activation &gt;</a>
 , <a class="el" href="classLayer.html#ae38defe7ecf2ed462fcf92deaddd9af3">Layer</a>
 </li>
 <li>bindParams()
-: <a class="el" href="classNetwork.html#a4ac775eecb8f5e89ecf1f5129d824945">Network</a>
+: <a class="el" href="classcuda__mlp_1_1CudaNetwork.html#aeb5df95bf3d986b04277996b6c32f9ef">cuda_mlp::CudaNetwork</a>
+, <a class="el" href="classNetwork.html#a4ac775eecb8f5e89ecf1f5129d824945">Network</a>
 </li>
 </ul>
 
@@ -96,25 +103,69 @@ $(function() {
 <li>compute_direction()
 : <a class="el" href="classLBFGS.html#ae1515b407c1958e2cb51fe92d702ee7c">LBFGS&lt; V, M &gt;</a>
 </li>
+<li>compute_loss_and_grad()
+: <a class="el" href="classcuda__mlp_1_1CudaNetwork.html#ab1348dfef5ae549707bea86ae88a0e02">cuda_mlp::CudaNetwork</a>
+</li>
+<li>copy_from_host()
+: <a class="el" href="classcuda__mlp_1_1DeviceBuffer.html#ae303134f5eb2b62dbeafa95413eae7df">cuda_mlp::DeviceBuffer&lt; T &gt;</a>
+</li>
+<li>copy_output_to_host()
+: <a class="el" href="classcuda__mlp_1_1CudaNetwork.html#a384dbb4c92ca44c1d34bff21a9999de2">cuda_mlp::CudaNetwork</a>
+</li>
+<li>copy_to_host()
+: <a class="el" href="classcuda__mlp_1_1DeviceBuffer.html#a0fd428a4132d244b37454b4f0a15e0ba">cuda_mlp::DeviceBuffer&lt; T &gt;</a>
+, <a class="el" href="structcuda__mlp_1_1IterationRecorder.html#a31658d32b8eca6e51d90284e6ac12228">cuda_mlp::IterationRecorder</a>
+</li>
+<li>CublasHandle()
+: <a class="el" href="classcuda__mlp_1_1CublasHandle.html#a3c41a1b0a015aaf79b7b7247d95fbe32">cuda_mlp::CublasHandle</a>
+</li>
+<li>CudaDenseLayer()
+: <a class="el" href="classcuda__mlp_1_1CudaDenseLayer.html#adf9209f0622597ed7f9a7cc9faabeab4">cuda_mlp::CudaDenseLayer</a>
+</li>
+<li>CudaGD()
+: <a class="el" href="classcuda__mlp_1_1CudaGD.html#a5f0a3f57564b671e378438e31408022b">cuda_mlp::CudaGD</a>
+</li>
+<li>CudaLBFGS()
+: <a class="el" href="classcuda__mlp_1_1CudaLBFGS.html#a4b3bf748a64e84ee44b2fd4dbc3f2e5c">cuda_mlp::CudaLBFGS</a>
+</li>
+<li>CudaMinimizerBase()
+: <a class="el" href="classcuda__mlp_1_1CudaMinimizerBase.html#a7ff4c2a10f4eb5e376a136dff3524a9b">cuda_mlp::CudaMinimizerBase</a>
+</li>
+<li>CudaNetwork()
+: <a class="el" href="classcuda__mlp_1_1CudaNetwork.html#a81c0dd6e5d78f8dc822d4e1046da8258">cuda_mlp::CudaNetwork</a>
+</li>
+<li>CudaSGD()
+: <a class="el" href="classcuda__mlp_1_1CudaSGD.html#a124ce382a8f3be66034eb87811e127d4">cuda_mlp::CudaSGD</a>
+</li>
 </ul>
 
 
 <h3><a id="index_d"></a>- d -</h3><ul>
+<li>data()
+: <a class="el" href="classcuda__mlp_1_1DeviceBuffer.html#a22e12ab998f4a967adf2a4d7891abbf3">cuda_mlp::DeviceBuffer&lt; T &gt;</a>
+</li>
 <li>DenseLayer()
 : <a class="el" href="classDenseLayer.html#aa540b5441234d82156f46b78a02cbdba">DenseLayer&lt; In, Out, Activation &gt;</a>
+</li>
+<li>DeviceBuffer()
+: <a class="el" href="classcuda__mlp_1_1DeviceBuffer.html#a60e4370d63eb57e960ba0bcee63c3ad5">cuda_mlp::DeviceBuffer&lt; T &gt;</a>
 </li>
 </ul>
 
 
 <h3><a id="index_f"></a>- f -</h3><ul>
 <li>forward()
-: <a class="el" href="structDense.html#a9ff69fe575f7c7b81009e3fc715f0bfa">Dense&lt; In, Out, Activation &gt;</a>
+: <a class="el" href="classcuda__mlp_1_1CudaDenseLayer.html#ab9377e28aecd00f8fa1b4ffc64ec42ff">cuda_mlp::CudaDenseLayer</a>
+, <a class="el" href="structDense.html#a9ff69fe575f7c7b81009e3fc715f0bfa">Dense&lt; In, Out, Activation &gt;</a>
 , <a class="el" href="classDenseLayer.html#a6c55a81be4522ab326348b5de6cc1701">DenseLayer&lt; In, Out, Activation &gt;</a>
 , <a class="el" href="classLayer.html#a1a5eaf9535b5d0c8190bc9c0f4204bbc">Layer</a>
 , <a class="el" href="classNetwork.html#a71284f42d5406247c615c1f608848603">Network</a>
 </li>
 <li>forward_batch()
 : <a class="el" href="structDense.html#abca4a463bb1f1ad2dff7682f217bd69a">Dense&lt; In, Out, Activation &gt;</a>
+</li>
+<li>forward_only()
+: <a class="el" href="classcuda__mlp_1_1CudaNetwork.html#a1a99a0434af96eeb351eaf799ab789d7">cuda_mlp::CudaNetwork</a>
 </li>
 <li>forward_scratch()
 : <a class="el" href="classPINN.html#ac2056a1c11ddc01af497a6a903c84ade">PINN&lt; Layers &gt;</a>
@@ -126,6 +177,9 @@ $(function() {
 
 
 <h3><a id="index_g"></a>- g -</h3><ul>
+<li>get()
+: <a class="el" href="classcuda__mlp_1_1CublasHandle.html#abeb7f0750e956a5f7de086ee4274f17e">cuda_mlp::CublasHandle</a>
+</li>
 <li>getGrads()
 : <a class="el" href="classNetwork.html#ad7a5641178504501efe3e9663f06a815">Network</a>
 </li>
@@ -154,20 +208,39 @@ $(function() {
 <li>getSize()
 : <a class="el" href="classNetwork.html#a300821ee71f949afa4bad83d50df2694">Network</a>
 </li>
+<li>grads_data()
+: <a class="el" href="classcuda__mlp_1_1CudaNetwork.html#abda6284e01f420bc74e00f211fcc2fc8">cuda_mlp::CudaNetwork</a>
+</li>
+<li>grads_ptr()
+: <a class="el" href="classcuda__mlp_1_1CudaDenseLayer.html#aa125c6f7ed97f01e0e57d6767f4af4f2">cuda_mlp::CudaDenseLayer</a>
+</li>
 </ul>
 
 
 <h3><a id="index_i"></a>- i -</h3><ul>
+<li>in()
+: <a class="el" href="classcuda__mlp_1_1CudaDenseLayer.html#a1ff09702174422aa83a7179d36dd8f65">cuda_mlp::CudaDenseLayer</a>
+</li>
+<li>init()
+: <a class="el" href="structcuda__mlp_1_1IterationRecorder.html#a2818ccb4b3d556f89c694acc0f63d237">cuda_mlp::IterationRecorder</a>
+</li>
 <li>init_params()
 : <a class="el" href="classPINN.html#a708edf06bed60590f20c3f62e8379016">PINN&lt; Layers &gt;</a>
 </li>
+<li>init_stddev()
+: <a class="el" href="classcuda__mlp_1_1CudaDenseLayer.html#af312d205604fe28f14391889ec836896">cuda_mlp::CudaDenseLayer</a>
+</li>
 <li>iterations()
-: <a class="el" href="classMinimizerBase.html#a6adf72133a7412a671d9815674cfa15d">MinimizerBase&lt; V, M &gt;</a>
+: <a class="el" href="classcuda__mlp_1_1CudaMinimizerBase.html#ade976e2b033583511a43a573e88eecb9">cuda_mlp::CudaMinimizerBase</a>
+, <a class="el" href="classMinimizerBase.html#a6adf72133a7412a671d9815674cfa15d">MinimizerBase&lt; V, M &gt;</a>
 </li>
 </ul>
 
 
 <h3><a id="index_l"></a>- l -</h3><ul>
+<li>last_batch()
+: <a class="el" href="classcuda__mlp_1_1CudaNetwork.html#a964c4ffde35500764a63227dfa4629ee">cuda_mlp::CudaNetwork</a>
+</li>
 <li>line_search()
 : <a class="el" href="classMinimizerBase.html#aa0769b6918189dfe63a223fdb38dfc0a">MinimizerBase&lt; V, M &gt;</a>
 </li>
@@ -183,12 +256,30 @@ $(function() {
 
 <h3><a id="index_o"></a>- o -</h3><ul>
 <li>operator=()
-: <a class="el" href="classPINN.html#a199ef5a20ce5ec17209e9399549eee87">PINN&lt; Layers &gt;</a>
+: <a class="el" href="classcuda__mlp_1_1CublasHandle.html#aad1e75b61111d13bf27b2b7354e3f41d">cuda_mlp::CublasHandle</a>
+, <a class="el" href="classcuda__mlp_1_1DeviceBuffer.html#a6dc24e23ccbe96d849776e812bbff1e0">cuda_mlp::DeviceBuffer&lt; T &gt;</a>
+, <a class="el" href="classPINN.html#a199ef5a20ce5ec17209e9399549eee87">PINN&lt; Layers &gt;</a>
+</li>
+<li>out()
+: <a class="el" href="classcuda__mlp_1_1CudaDenseLayer.html#a61e169a98f2a322016e11e36b9ef663a">cuda_mlp::CudaDenseLayer</a>
+</li>
+<li>output_size()
+: <a class="el" href="classcuda__mlp_1_1CudaNetwork.html#a4a5e60cf35eb213d9d704d864d7e6374">cuda_mlp::CudaNetwork</a>
 </li>
 </ul>
 
 
 <h3><a id="index_p"></a>- p -</h3><ul>
+<li>params_data()
+: <a class="el" href="classcuda__mlp_1_1CudaNetwork.html#acaaec6b927c6b5b4bdb927185aecd139">cuda_mlp::CudaNetwork</a>
+</li>
+<li>params_ptr()
+: <a class="el" href="classcuda__mlp_1_1CudaDenseLayer.html#af0dc217bc81bb8f31007612ceed01425">cuda_mlp::CudaDenseLayer</a>
+</li>
+<li>params_size()
+: <a class="el" href="classcuda__mlp_1_1CudaDenseLayer.html#a621d06093226718c1f10f0af1097e8b5">cuda_mlp::CudaDenseLayer</a>
+, <a class="el" href="classcuda__mlp_1_1CudaNetwork.html#a0ba4e8be8ba2f83046da28cd9a19830c">cuda_mlp::CudaNetwork</a>
+</li>
 <li>PINN()
 : <a class="el" href="classPINN.html#ac9feed4fc5d379756275dd32e745e4fd">PINN&lt; Layers &gt;</a>
 </li>
@@ -205,8 +296,20 @@ $(function() {
 
 
 <h3><a id="index_r"></a>- r -</h3><ul>
+<li>record()
+: <a class="el" href="structcuda__mlp_1_1IterationRecorder.html#a61be3e9e7e83c0c80444c38a84e59707">cuda_mlp::IterationRecorder</a>
+</li>
+<li>release()
+: <a class="el" href="classcuda__mlp_1_1DeviceBuffer.html#aadeda0c95ac1348986fc0e030e2139bc">cuda_mlp::DeviceBuffer&lt; T &gt;</a>
+</li>
 <li>requires()
 : <a class="el" href="classBFGS.html#a72c3a429ac6abfeb01549b8269a01d93">BFGS&lt; V, M, Solver &gt;</a>
+</li>
+<li>reset()
+: <a class="el" href="structcuda__mlp_1_1IterationRecorder.html#a89965bbcf582f1f3c1ef109c4a8508c8">cuda_mlp::IterationRecorder</a>
+</li>
+<li>resize()
+: <a class="el" href="classcuda__mlp_1_1DeviceBuffer.html#a0494fd8a47d94eadca1d642cc92f4090">cuda_mlp::DeviceBuffer&lt; T &gt;</a>
 </li>
 </ul>
 
@@ -219,9 +322,15 @@ $(function() {
 <li>setArmijoMaxIter()
 : <a class="el" href="classMinimizerBase.html#a9dc4f5fdd3de1ff19e183e0dd30c6a75">MinimizerBase&lt; V, M &gt;</a>
 </li>
+<li>setBatchSize()
+: <a class="el" href="classcuda__mlp_1_1CudaSGD.html#a6c04b01704de507d8865e4599a19b029">cuda_mlp::CudaSGD</a>
+</li>
 <li>setData()
 : <a class="el" href="classSLBFGS.html#ad308a5db18a12a5bee4a215ff2eb7d96">SLBFGS&lt; V, M &gt;</a>
 , <a class="el" href="classStochasticGradientDescent.html#ada2559cd92fb57fa5ce094f30ff27bf2">StochasticGradientDescent&lt; V, M &gt;</a>
+</li>
+<li>setDimensions()
+: <a class="el" href="classcuda__mlp_1_1CudaSGD.html#ade199ac5f2387468fccc5c786d524820">cuda_mlp::CudaSGD</a>
 </li>
 <li>setHessian()
 : <a class="el" href="classMinimizerBase.html#a527f162f677976f642c9f9e599c00132">MinimizerBase&lt; V, M &gt;</a>
@@ -232,18 +341,39 @@ $(function() {
 <li>setInitialHessian()
 : <a class="el" href="classMinimizerBase.html#a74541618a2a7c81ff7341a978c64f6eb">MinimizerBase&lt; V, M &gt;</a>
 </li>
+<li>setLearningRate()
+: <a class="el" href="classcuda__mlp_1_1CudaGD.html#a2b7345649106382b738e5d0d0bbc8ff1">cuda_mlp::CudaGD</a>
+, <a class="el" href="classcuda__mlp_1_1CudaSGD.html#a3fe0b86eaa3c69b754a90eae61877fae">cuda_mlp::CudaSGD</a>
+</li>
+<li>setLearningRateDecay()
+: <a class="el" href="classcuda__mlp_1_1CudaSGD.html#a8c7377c5b06ca0f7097ee3f17128fce9">cuda_mlp::CudaSGD</a>
+</li>
+<li>setLineSearchParams()
+: <a class="el" href="classcuda__mlp_1_1CudaMinimizerBase.html#a54cc833b7fc98f29ca5cf90d6a68061e">cuda_mlp::CudaMinimizerBase</a>
+</li>
 <li>setLogFile()
 : <a class="el" href="classSLBFGS.html#a071616cc33b8e01b2ad6cb08c36b905d">SLBFGS&lt; V, M &gt;</a>
 , <a class="el" href="classStochasticGradientDescent.html#a8e5f730bb5efb4503973df03d2e6e61a">StochasticGradientDescent&lt; V, M &gt;</a>
 </li>
 <li>setMaxIterations()
-: <a class="el" href="classMinimizerBase.html#a6e85b5c64d0c073ec8c2c7d0011d07aa">MinimizerBase&lt; V, M &gt;</a>
+: <a class="el" href="classcuda__mlp_1_1CudaMinimizerBase.html#ada7d503db129e00edd8146768ae67f8f">cuda_mlp::CudaMinimizerBase</a>
+, <a class="el" href="classMinimizerBase.html#a6e85b5c64d0c073ec8c2c7d0011d07aa">MinimizerBase&lt; V, M &gt;</a>
 </li>
 <li>setMaxLineIters()
 : <a class="el" href="classMinimizerBase.html#a17cf54e15b4506c4ccbe38a967bf4739">MinimizerBase&lt; V, M &gt;</a>
 </li>
+<li>setMemory()
+: <a class="el" href="classcuda__mlp_1_1CudaLBFGS.html#a36f0a85f6943f5063b5626309262a0a8">cuda_mlp::CudaLBFGS</a>
+</li>
+<li>setMomentum()
+: <a class="el" href="classcuda__mlp_1_1CudaGD.html#a76022f6de0ef0eba65385f6304b25d51">cuda_mlp::CudaGD</a>
+, <a class="el" href="classcuda__mlp_1_1CudaSGD.html#a7e3b2be7401bb166361b94401e5b28ed">cuda_mlp::CudaSGD</a>
+</li>
 <li>setParams()
 : <a class="el" href="classNetwork.html#aa9d36a99ea68975ca1a55f01c150cef8">Network</a>
+</li>
+<li>setRecorder()
+: <a class="el" href="classcuda__mlp_1_1CudaMinimizerBase.html#af490b9fd16658cf9e327a5cd60085f8b">cuda_mlp::CudaMinimizerBase</a>
 </li>
 <li>setStepSize()
 : <a class="el" href="classGradientDescent.html#a02d78c776126d0b6291d757902a20255">GradientDescent&lt; V, M &gt;</a>
@@ -253,10 +383,19 @@ $(function() {
 : <a class="el" href="classMinimizerBase.html#a5f0784418ca42c383ce1f471b7569e99">MinimizerBase&lt; V, M &gt;</a>
 </li>
 <li>setTolerance()
-: <a class="el" href="classMinimizerBase.html#a059d61e7f4932542f807789982ac1bdf">MinimizerBase&lt; V, M &gt;</a>
+: <a class="el" href="classcuda__mlp_1_1CudaMinimizerBase.html#a682d54ae8e4a7b9b216999423dfb56bb">cuda_mlp::CudaMinimizerBase</a>
+, <a class="el" href="classMinimizerBase.html#a059d61e7f4932542f807789982ac1bdf">MinimizerBase&lt; V, M &gt;</a>
+</li>
+<li>size()
+: <a class="el" href="classcuda__mlp_1_1DeviceBuffer.html#a7937ec6bd44bf48920e2c05e376c1c75">cuda_mlp::DeviceBuffer&lt; T &gt;</a>
+, <a class="el" href="structcuda__mlp_1_1IterationRecorder.html#a627307c9e9b36929e4d5cc6439c3907c">cuda_mlp::IterationRecorder</a>
 </li>
 <li>solve()
 : <a class="el" href="classBFGS.html#a037d353ea150ef231720075d5decfd44">BFGS&lt; V, M, Solver &gt;</a>
+, <a class="el" href="classcuda__mlp_1_1CudaGD.html#af4f49873129a98cea837fa7284448d9a">cuda_mlp::CudaGD</a>
+, <a class="el" href="classcuda__mlp_1_1CudaLBFGS.html#a91a3611d456c2958b236125b444aec3f">cuda_mlp::CudaLBFGS</a>
+, <a class="el" href="classcuda__mlp_1_1CudaMinimizerBase.html#aebc533c0af97e190dfd02753bf05dae0">cuda_mlp::CudaMinimizerBase</a>
+, <a class="el" href="classcuda__mlp_1_1CudaSGD.html#a87c5b29a57e0361ca6186edcc7eb0dd7">cuda_mlp::CudaSGD</a>
 , <a class="el" href="classGradientDescent.html#abe059759db9680e1ddda671bda85475e">GradientDescent&lt; V, M &gt;</a>
 , <a class="el" href="classLBFGS.html#acc3c0cb169d832d01fe8f9ef512e8d70">LBFGS&lt; V, M &gt;</a>
 , <a class="el" href="classMinimizerBase.html#aabce966fc5737c8143fefaeea45e8d3e">MinimizerBase&lt; V, M &gt;</a>
@@ -300,14 +439,31 @@ $(function() {
 </ul>
 
 
+<h3><a id="index_w"></a>- w -</h3><ul>
+<li>weights_size()
+: <a class="el" href="classcuda__mlp_1_1CudaDenseLayer.html#a8413a0ba423a5759746d137a2bcd30f5">cuda_mlp::CudaDenseLayer</a>
+</li>
+</ul>
+
+
 <h3><a id="index_z"></a>- z -</h3><ul>
 <li>zeroGrads()
-: <a class="el" href="classNetwork.html#a34b57375dba95e10a3557c15f2cd00fc">Network</a>
+: <a class="el" href="classcuda__mlp_1_1CudaNetwork.html#a51471ca3cd6a835b8e764f79e5c6ea48">cuda_mlp::CudaNetwork</a>
+, <a class="el" href="classNetwork.html#a34b57375dba95e10a3557c15f2cd00fc">Network</a>
 </li>
 </ul>
 
 
 <h3><a id="index__7E"></a>- ~ -</h3><ul>
+<li>~CublasHandle()
+: <a class="el" href="classcuda__mlp_1_1CublasHandle.html#af8ba85a57d8d95600e78899e70b047b7">cuda_mlp::CublasHandle</a>
+</li>
+<li>~CudaMinimizerBase()
+: <a class="el" href="classcuda__mlp_1_1CudaMinimizerBase.html#a3f32bf13680e9792a9e0e84b108b04a6">cuda_mlp::CudaMinimizerBase</a>
+</li>
+<li>~DeviceBuffer()
+: <a class="el" href="classcuda__mlp_1_1DeviceBuffer.html#a8c7b6ac726d5369f0dc6d51f5c49a116">cuda_mlp::DeviceBuffer&lt; T &gt;</a>
+</li>
 <li>~Layer()
 : <a class="el" href="classLayer.html#a57e5a4a6ec188de4e7b8c894aac254ea">Layer</a>
 </li>

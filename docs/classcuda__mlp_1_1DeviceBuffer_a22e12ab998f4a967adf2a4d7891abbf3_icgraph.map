@@ -1,0 +1,12 @@
+<map id="cuda_mlp::DeviceBuffer::data" name="cuda_mlp::DeviceBuffer::data">
+<area shape="rect" id="node1" title="Mutable raw pointer to device memory." alt="" coords="497,224,675,265"/>
+<area shape="rect" id="node2" href="$classcuda__mlp_1_1CudaNetwork.html#aeb5df95bf3d986b04277996b6c32f9ef" title="Allocate parameter/gradient buffers and initialize weights." alt="" coords="9,5,191,47"/>
+<area shape="rect" id="node3" href="$classcuda__mlp_1_1CudaNetwork.html#abda6284e01f420bc74e00f211fcc2fc8" title="Mutable device pointer to gradients." alt="" coords="255,129,437,171"/>
+<area shape="rect" id="node4" href="$classcuda__mlp_1_1CudaNetwork.html#acaaec6b927c6b5b4bdb927185aecd139" title="Mutable device pointer to parameters." alt="" coords="255,195,437,236"/>
+<area shape="rect" id="node5" href="$structcuda__mlp_1_1IterationRecorder.html#a61be3e9e7e83c0c80444c38a84e59707" title="Record a loss and gradient norm at an index." alt="" coords="243,312,449,353"/>
+<area shape="rect" id="node6" href="$classcuda__mlp_1_1CudaLBFGS.html#a91a3611d456c2958b236125b444aec3f" title="Run L&#45;BFGS optimization." alt="" coords="16,279,184,320"/>
+<area shape="rect" id="node7" href="$classcuda__mlp_1_1CudaGD.html#af4f49873129a98cea837fa7284448d9a" title="Run full&#45;batch gradient descent." alt="" coords="5,351,195,378"/>
+<area shape="rect" id="node8" href="$classcuda__mlp_1_1CudaSGD.html#a87c5b29a57e0361ca6186edcc7eb0dd7" title="Run SGD optimization." alt="" coords="19,415,181,456"/>
+<area shape="rect" id="node9" href="$classcuda__mlp_1_1CudaNetwork.html#a51471ca3cd6a835b8e764f79e5c6ea48" title="Zero all gradients." alt="" coords="255,64,437,105"/>
+<area shape="rect" id="node10" href="$classcuda__mlp_1_1CudaNetwork.html#ab1348dfef5ae549707bea86ae88a0e02" title="Compute MSE loss and gradients for a batch." alt="" coords="7,71,193,112"/>
+</map>

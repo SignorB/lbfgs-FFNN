@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['usedefaultsolver_143',['UseDefaultSolver',['../classBFGS.html#a72b433395204bd18b4be01aacd3dea3b',1,'BFGS']]],
-  ['uselinesearch_144',['useLineSearch',['../classGradientDescent.html#a97a36e721684cc44c367345a18429fb9',1,'GradientDescent']]]
+  ['usedefaultsolver_217',['UseDefaultSolver',['../classBFGS.html#a72b433395204bd18b4be01aacd3dea3b',1,'BFGS']]],
+  ['uselinesearch_218',['useLineSearch',['../classGradientDescent.html#a97a36e721684cc44c367345a18429fb9',1,'GradientDescent']]]
 ];

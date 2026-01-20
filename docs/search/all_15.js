@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['zerograds_147',['zeroGrads',['../classNetwork.html#a34b57375dba95e10a3557c15f2cd00fc',1,'Network']]]
+  ['weights_5fsize_221',['weights_size',['../classcuda__mlp_1_1CudaDenseLayer.html#a8413a0ba423a5759746d137a2bcd30f5',1,'cuda_mlp::CudaDenseLayer']]]
 ];
