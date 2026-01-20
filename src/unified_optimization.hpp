@@ -1,10 +1,14 @@
 #pragma once
 
 #include "network_wrapper.hpp"
+#include "iteration_recorder.hpp"
 #include <string>
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <fstream>
+#include <chrono>
+#include <algorithm>
 #include <Eigen/Core>
 #include <type_traits>
 
@@ -46,6 +50,35 @@ struct UnifiedDataset {
     Eigen::MatrixXd test_x;
     Eigen::MatrixXd test_y;
 };
+
+inline std::string cpu_log_filename(const UnifiedConfig& config) {
+    std::string base = config.name.empty() ? "run" : config.name;
+    return base + "_history.csv";
+}
+
+inline void write_cpu_history_csv(
+    const std::string& filename,
+    const IterationRecorder<CpuBackend>& recorder,
+    int log_interval
+) {
+    if (log_interval <= 0) return;
+    std::vector<double> loss_hist;
+    std::vector<double> grad_hist;
+    std::vector<double> time_hist;
+    recorder.copy_to_host(loss_hist, grad_hist, time_hist);
+    if (loss_hist.empty()) return;
+
+    std::ofstream log_file(filename);
+    if (!log_file.is_open()) return;
+    log_file << "Iteration,Loss,GradNorm,TimeMs\n";
+    int stride = std::max(1, log_interval);
+    for (size_t i = 0; i < loss_hist.size(); i += static_cast<size_t>(stride)) {
+        double loss = loss_hist[i];
+        double grad = (i < grad_hist.size()) ? grad_hist[i] : 0.0;
+        double time_ms = (i < time_hist.size()) ? time_hist[i] : 0.0;
+        log_file << i << "," << loss << "," << grad << "," << time_ms << "\n";
+    }
+}
 
 
 // -----------------------------------------------------------
@@ -97,8 +130,12 @@ public:
         minimizer->setTolerance(config.tolerance);
         minimizer->setStepSize(config.learning_rate);
         minimizer->useLineSearch(false);
+        IterationRecorder<CpuBackend> recorder;
+        recorder.init(config.max_iters);
+        minimizer->setRecorder(&recorder);
         
         net.getInternal().train(data.train_x, data.train_y, minimizer);
+        write_cpu_history_csv(cpu_log_filename(config), recorder, config.log_interval);
     }
 };
 
@@ -116,8 +153,12 @@ public:
         minimizer->setMaxIterations(config.max_iters);
         minimizer->setTolerance(config.tolerance);
         minimizer->setHistorySize(config.m_param > 0 ? config.m_param : 10);
+        IterationRecorder<CpuBackend> recorder;
+        recorder.init(config.max_iters);
+        minimizer->setRecorder(&recorder);
         
         net.getInternal().train(data.train_x, data.train_y, minimizer);
+        write_cpu_history_csv(cpu_log_filename(config), recorder, config.log_interval);
     }
 };
 
@@ -135,6 +176,9 @@ public:
         minimizer->setMaxIterations(config.max_iters);
         minimizer->setStepSize(config.learning_rate);
         minimizer->setLogFile("sgd_log.csv"); // Optional logging
+        IterationRecorder<CpuBackend> recorder;
+        recorder.init(config.max_iters);
+        minimizer->setRecorder(&recorder);
         
         std::cout << "Starting Batch SGD (CPU Optimized)..." << std::endl;
         
@@ -152,6 +196,7 @@ public:
             true, 
             config.log_interval
         );
+        write_cpu_history_csv(cpu_log_filename(config), recorder, config.log_interval);
     }
 };
 
@@ -256,6 +301,9 @@ public:
         auto minimizer = std::make_shared<SLBFGS<Vec, Mat>>();
         minimizer->setMaxIterations(config.max_iters);
         minimizer->setTolerance(config.tolerance);
+        IterationRecorder<CpuBackend> recorder;
+        recorder.init(config.max_iters);
+        minimizer->setRecorder(&recorder);
         
         int b_H = config.b_H_param > 0 ? config.b_H_param : config.batch_size/2;
         int m = data.train_x.cols() / config.batch_size;
@@ -276,6 +324,7 @@ public:
             true, 
             config.log_interval
         );
+        write_cpu_history_csv(cpu_log_filename(config), recorder, config.log_interval);
     }
 };
 
@@ -288,7 +337,7 @@ public:
 #include "cuda/gd.cuh"
 #include "cuda/lbfgs.cuh"
 #include "cuda/sgd.cuh"
-#include "cuda/iteration_recorder.cuh"
+#include "iteration_recorder.hpp"
 #include "cuda/device_buffer.cuh"
 
 /**
@@ -318,11 +367,41 @@ public:
     ) = 0;
 };
 
+inline std::string cuda_log_filename(const UnifiedConfig& config) {
+    std::string base = config.name.empty() ? "run" : config.name;
+    return base + "_history.csv";
+}
+
+inline void write_cuda_history_csv(
+    const std::string& filename,
+    const IterationRecorder<CudaBackend>& recorder,
+    int log_interval
+) {
+    if (log_interval <= 0) return;
+    std::vector<cuda_mlp::CudaScalar> loss_hist;
+    std::vector<cuda_mlp::CudaScalar> grad_hist;
+    std::vector<cuda_mlp::CudaScalar> time_hist;
+    recorder.copy_to_host(loss_hist, grad_hist, time_hist);
+    if (loss_hist.empty()) return;
+
+    std::ofstream log_file(filename);
+    if (!log_file.is_open()) return;
+    log_file << "Iteration,Loss,GradNorm,TimeMs\n";
+    int stride = std::max(1, log_interval);
+    for (size_t i = 0; i < loss_hist.size(); i += static_cast<size_t>(stride)) {
+        cuda_mlp::CudaScalar loss = loss_hist[i];
+        cuda_mlp::CudaScalar grad = (i < grad_hist.size()) ? grad_hist[i] : static_cast<cuda_mlp::CudaScalar>(0);
+        cuda_mlp::CudaScalar time_ms = (i < time_hist.size()) ? time_hist[i] : static_cast<cuda_mlp::CudaScalar>(0);
+        log_file << i << "," << loss << "," << grad << "," << time_ms << "\n";
+    }
+}
+
 /**
- * @brief Helper to execute CUDA solver loop.
+ * @brief Helper to execute CUDA solver loop with multiple runs and logging.
  */
-inline void run_cuda_solver(
-    std::unique_ptr<cuda_mlp::CudaMinimizerBase> solver,
+template <typename SolverFactory>
+inline void run_cuda_solver_once(
+    SolverFactory make_solver,
     cuda_mlp::CudaNetwork& net,
     cuda_mlp::DeviceBuffer<cuda_mlp::CudaScalar>& d_train_x,
     cuda_mlp::DeviceBuffer<cuda_mlp::CudaScalar>& d_train_y,
@@ -330,24 +409,39 @@ inline void run_cuda_solver(
     const UnifiedConfig& config
 ) {
     using namespace cuda_mlp;
-    IterationRecorder recorder;
-    recorder.init(config.max_iters);
-    solver->setRecorder(&recorder);
-    
+    DeviceBuffer<CudaScalar> initial_params(net.params_size());
+    if (net.params_size() > 0) {
+        device_copy(initial_params.data(), net.params_data(), net.params_size());
+    }
+
     auto loss_grad = [&](const CudaScalar *params, CudaScalar *grad, const CudaScalar *input, const CudaScalar *target, int batch) -> CudaScalar {
         CudaScalar loss = net.compute_loss_and_grad(input, target, batch);
         device_copy(grad, net.grads_data(), net.params_size());
         return loss;
     };
 
+    if (net.params_size() > 0) {
+        device_copy(net.params_data(), initial_params.data(), net.params_size());
+    }
+
+    auto solver = make_solver();
+    IterationRecorder<CudaBackend> recorder;
+    recorder.init(config.max_iters);
+    solver->setRecorder(&recorder);
+
+    auto start_time = std::chrono::steady_clock::now();
     solver->solve(net.params_size(),
         net.params_data(),
         d_train_x.data(),
         d_train_y.data(),
         static_cast<int>(dataset.train_x.cols()),
         loss_grad);
-        
     cudaDeviceSynchronize();
+    auto end_time = std::chrono::steady_clock::now();
+    (void)start_time;
+    (void)end_time;
+
+    write_cuda_history_csv(cuda_log_filename(config), recorder, config.log_interval);
 }
 
 /**
@@ -358,12 +452,14 @@ class UnifiedGD_CUDA : public UnifiedOptimizer<CudaBackend> {
 public:
     void optimize(cuda_mlp::CublasHandle& handle, NetworkWrapper<CudaBackend>& net, const UnifiedDataset& d, cuda_mlp::DeviceBuffer<cuda_mlp::CudaScalar>& dx, cuda_mlp::DeviceBuffer<cuda_mlp::CudaScalar>& dy, const UnifiedConfig& c) override {
         using namespace cuda_mlp;
-        auto solver = std::make_unique<CudaGD>(handle);
-        solver->setLearningRate(c.learning_rate);
-        solver->setMomentum(c.momentum);
-        solver->setMaxIterations(c.max_iters);
-        solver->setTolerance(c.tolerance);
-        run_cuda_solver(std::move(solver), net.getInternal(), dx, dy, d, c);
+        run_cuda_solver_once([&]() {
+            auto solver = std::make_unique<CudaGD>(handle);
+            solver->setLearningRate(c.learning_rate);
+            solver->setMomentum(c.momentum);
+            solver->setMaxIterations(c.max_iters);
+            solver->setTolerance(c.tolerance);
+            return solver;
+        }, net.getInternal(), dx, dy, d, c);
     }
 };
 
@@ -375,11 +471,13 @@ class UnifiedLBFGS_CUDA : public UnifiedOptimizer<CudaBackend> {
 public:
      void optimize(cuda_mlp::CublasHandle& handle, NetworkWrapper<CudaBackend>& net, const UnifiedDataset& d, cuda_mlp::DeviceBuffer<cuda_mlp::CudaScalar>& dx, cuda_mlp::DeviceBuffer<cuda_mlp::CudaScalar>& dy, const UnifiedConfig& c) override {
         using namespace cuda_mlp;
-        auto solver = std::make_unique<CudaLBFGS>(handle);
-        solver->setMemory(c.m_param); 
-        solver->setMaxIterations(c.max_iters);
-        solver->setTolerance(c.tolerance);
-        run_cuda_solver(std::move(solver), net.getInternal(), dx, dy, d, c);
+        run_cuda_solver_once([&]() {
+            auto solver = std::make_unique<CudaLBFGS>(handle);
+            solver->setMemory(c.m_param);
+            solver->setMaxIterations(c.max_iters);
+            solver->setTolerance(c.tolerance);
+            return solver;
+        }, net.getInternal(), dx, dy, d, c);
      }
 };
 
@@ -391,13 +489,15 @@ class UnifiedSGD_CUDA : public UnifiedOptimizer<CudaBackend> {
 public:
      void optimize(cuda_mlp::CublasHandle& handle, NetworkWrapper<CudaBackend>& net, const UnifiedDataset& d, cuda_mlp::DeviceBuffer<cuda_mlp::CudaScalar>& dx, cuda_mlp::DeviceBuffer<cuda_mlp::CudaScalar>& dy, const UnifiedConfig& c) override {
         using namespace cuda_mlp;
-        auto solver = std::make_unique<CudaSGD>(handle);
-        solver->setLearningRate(c.learning_rate);
-        solver->setMomentum(c.momentum);
-        solver->setBatchSize(c.batch_size);
-        solver->setMaxIterations(c.max_iters);
-        solver->setDimensions(static_cast<int>(d.train_x.rows()), static_cast<int>(d.train_y.rows()));
-        run_cuda_solver(std::move(solver), net.getInternal(), dx, dy, d, c);
+        run_cuda_solver_once([&]() {
+            auto solver = std::make_unique<CudaSGD>(handle);
+            solver->setLearningRate(c.learning_rate);
+            solver->setMomentum(c.momentum);
+            solver->setBatchSize(c.batch_size);
+            solver->setMaxIterations(c.max_iters);
+            solver->setDimensions(static_cast<int>(d.train_x.rows()), static_cast<int>(d.train_y.rows()));
+            return solver;
+        }, net.getInternal(), dx, dy, d, c);
      }
 };
 

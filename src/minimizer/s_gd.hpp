@@ -3,6 +3,7 @@
 #include "../common.hpp"
 #include "minimizer_base.hpp"
 #include <Eigen/Eigen>
+#include <chrono>
 #include <random>
 #include <fstream>
 #include <cmath>
@@ -46,11 +47,26 @@ public:
 
   // Full-batch solve (fallback) — reuse simple GD behavior
   V solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient) override {
+    const bool timing = (this->recorder_ != nullptr);
+    if (this->recorder_) this->recorder_->reset();
+    auto start_time = std::chrono::steady_clock::now();
+
     for (_iters = 0; _iters < _max_iters; ++_iters) {
       V g = Gradient(x);
       if (g.norm() < _tol)
         break;
       x = x - this->step_size * g;
+
+      if (this->recorder_) {
+        double loss = f(x);
+        double elapsed_ms = 0.0;
+        if (timing) {
+          auto now = std::chrono::steady_clock::now();
+          elapsed_ms =
+              std::chrono::duration<double, std::milli>(now - start_time).count();
+        }
+        this->recorder_->record(_iters, loss, g.norm(), elapsed_ms);
+      }
     }
     return x;
   }
@@ -81,8 +97,13 @@ public:
     double passes = 0.0;
     std::mt19937 rng(123);
 
+    const bool timing = (this->recorder_ != nullptr);
+    if (this->recorder_) this->recorder_->reset();
+    auto start_time = std::chrono::steady_clock::now();
+
     while (_iters < _max_iters) {
       // one epoch of m minibatches
+      double last_grad_norm = 0.0;
       for (int t = 0; t < m; ++t) {
         // sample minibatch indices using shared helper
         auto minibatch_indices = sample_minibatch_indices(N, b, rng);
@@ -92,6 +113,7 @@ public:
         // MODIFICATO: Chiamata unica batch-wise
         // The callback logic handles extracting data from the pre-set Matrix using indices
         _batch_g(w, minibatch_indices, grad_est);
+        last_grad_norm = grad_est.norm();
 
         // update
         w = w - step * grad_est;
@@ -121,6 +143,16 @@ public:
 
       if (verbose && ((_iters % print_every) == 0)) {
         std::cout << "Epoch " << (_iters + 1) << " loss=" << loss << " passes=" << passes << std::endl;
+      }
+
+      if (this->recorder_) {
+        double elapsed_ms = 0.0;
+        if (timing) {
+          auto now = std::chrono::steady_clock::now();
+          elapsed_ms =
+              std::chrono::duration<double, std::milli>(now - start_time).count();
+        }
+        this->recorder_->record(_iters, loss, last_grad_norm, elapsed_ms);
       }
 
       _iters++;

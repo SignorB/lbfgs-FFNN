@@ -12,6 +12,7 @@
 #include <random>
 #include <numeric>
 #include <fstream>
+#include <chrono>
 #include <cmath>
 
 /**
@@ -193,6 +194,10 @@ V SLBFGS<V,M>::stochastic_solve(V weights,
     std::vector<size_t> full_indices(N);
     std::iota(full_indices.begin(), full_indices.end(), 0);
 
+    const bool timing = (this->recorder_ != nullptr);
+    if (this->recorder_) this->recorder_->reset();
+    auto start_time = std::chrono::steady_clock::now();
+
     while (_iters < _max_iters) {
         
         w_history.clear();
@@ -305,9 +310,20 @@ V SLBFGS<V,M>::stochastic_solve(V weights,
 
         // Logging (approximate loss via simple full gradient norm or callback if desired)
         // Calculating full loss is expensive. We skip it or use passed callback on full batch.
-         if (verbose) {
+        if (verbose || this->recorder_) {
            double full_loss = f(weights, full_indices);
-           std::cout << "SLBFGS Iter " << (_iters + 1) << " Loss: " << full_loss << std::endl;
+           if (verbose) {
+             std::cout << "SLBFGS Iter " << (_iters + 1) << " Loss: " << full_loss << std::endl;
+           }
+           if (this->recorder_) {
+             double elapsed_ms = 0.0;
+             if (timing) {
+               auto now = std::chrono::steady_clock::now();
+               elapsed_ms =
+                   std::chrono::duration<double, std::milli>(now - start_time).count();
+             }
+             this->recorder_->record(_iters, full_loss, full_gradient.norm(), elapsed_ms);
+           }
          }
 
         _iters++;
@@ -316,7 +332,6 @@ V SLBFGS<V,M>::stochastic_solve(V weights,
     if (logfile_stream.is_open()) logfile_stream.close();
     return weights;
 };
-
 
 
 

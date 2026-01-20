@@ -1,11 +1,13 @@
 #pragma once
 
 #include "../common.hpp"
+#include "../iteration_recorder.hpp"
 #include <autodiff/reverse/var.hpp>
 #include <autodiff/reverse/var/eigen.hpp>
 #include <Eigen/Cholesky>
 #include <Eigen/Eigen>
 #include <Eigen/IterativeLinearSolvers>
+#include <vector>
 
 extern "C" {
     extern double __enzyme_autodiff(void*, ...);
@@ -72,6 +74,12 @@ public:
      * @param history_size History size.
      */
     void setHistorySize(size_t history_size) noexcept { m = history_size; }
+
+    /**
+     * @brief Attach a recorder for loss/gradient history.
+     * @param recorder Recorder to receive iteration data.
+     */
+    void setRecorder(IterationRecorder<CpuBackend> *recorder) noexcept { recorder_ = recorder; }
 
     /**
      * @brief Sets the stochastic parameters for optimization.
@@ -177,6 +185,7 @@ protected:
     int b = 10;
     int b_H = 16;
     double step_size = 0.01;
+    IterationRecorder<CpuBackend> *recorder_ = nullptr;
 
     /**
      * @brief Performs line search using Wolfe conditions.

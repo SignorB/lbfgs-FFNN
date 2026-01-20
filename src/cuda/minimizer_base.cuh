@@ -1,7 +1,7 @@
 #pragma once
 
+#include "../iteration_recorder.hpp"
 #include "cublas_handle.cuh"
-#include "iteration_recorder.cuh"
 #include <algorithm>
 #include <functional>
 #include <vector>
@@ -24,7 +24,7 @@ public:
   /// @brief Return the number of iterations performed in the last solve
   int iterations() const noexcept { return last_iterations_; }
   /// @brief Attach a recorder for loss/grad norm history
-  void setRecorder(IterationRecorder *recorder) { recorder_ = recorder; }
+  void setRecorder(::IterationRecorder<CudaBackend> *recorder) { recorder_ = recorder; }
 
   /// @brief Set maximum number of iterations
   void setMaxIterations(int iters) { max_iters_ = iters; }
@@ -59,11 +59,11 @@ public:
       const LossGradFun &loss_grad) = 0;
 
 protected:
-  CublasHandle &handle_;                             ///< cuBLAS handle used by the optimizer
-  int max_iters_ = 200, max_line_iters_ = 20;        ///< Iteration limits
-  CudaScalar tol_ = 1e-6f, c1_ = 1e-4f, rho_ = 0.5f; ///< Stopping and line-search params
-  int last_iterations_ = 0;                          ///< Iterations performed in last run
-  IterationRecorder *recorder_ = nullptr;            ///< Optional recorder for diagnostics
+  CublasHandle &handle_;                                 ///< cuBLAS handle used by the optimizer
+  int max_iters_ = 200, max_line_iters_ = 20;            ///< Iteration limits
+  CudaScalar tol_ = 1e-6f, c1_ = 1e-4f, rho_ = 0.5f;     ///< Stopping and line-search params
+  int last_iterations_ = 0;                              ///< Iterations performed in last run
+  ::IterationRecorder<CudaBackend> *recorder_ = nullptr; ///< Optional recorder for diagnostics
 };
 
 } // namespace cuda_mlp

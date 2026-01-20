@@ -3,6 +3,7 @@
 #include "../common.hpp"
 #include "minimizer_base.hpp"
 #include <Eigen/Eigen>
+#include <chrono>
 #include <iostream>
 
 /**
@@ -23,10 +24,11 @@ public:
   void useLineSearch(bool enable) noexcept { use_line_search = enable; }
 
   V solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient) override {
-        
-    for (_iters = 0; _iters < _max_iters; ++_iters) {
-      std::cout << "iter: " << _iters << std::endl;
+    const bool timing = (this->recorder_ != nullptr);
+    if (this->recorder_) this->recorder_->reset();
+    auto start_time = std::chrono::steady_clock::now();
 
+    for (_iters = 0; _iters < _max_iters; ++_iters) {
       V g = Gradient(x);
       if (g.norm() < _tol)
         break;
@@ -36,6 +38,17 @@ public:
         alpha = this->line_search(x, -g, f, Gradient);
 
       x = x - alpha * g;
+
+      if (this->recorder_) {
+        double loss = f(x);
+        double elapsed_ms = 0.0;
+        if (timing) {
+          auto now = std::chrono::steady_clock::now();
+          elapsed_ms =
+              std::chrono::duration<double, std::milli>(now - start_time).count();
+        }
+        this->recorder_->record(_iters, loss, g.norm(), elapsed_ms);
+      }
     }
     return x;
   }

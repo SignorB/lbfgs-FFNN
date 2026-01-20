@@ -2,8 +2,9 @@
 
 #include "../common.hpp"
 #include "minimizer_base.hpp"
-#include <autodiff/forward/dual.hpp>
 #include <Eigen/Eigen>
+#include <autodiff/forward/dual.hpp>
+#include <chrono>
 
 /**
  * @brief Limited-memory BFGS (L-BFGS) minimizer.
@@ -15,8 +16,7 @@
  * @tparam V Vector type (e.g., Eigen::VectorXd).
  * @tparam M Matrix type (e.g., Eigen::MatrixXd).
  */
-template <typename V, typename M>
-class LBFGS : public MinimizerBase<V, M> {
+template <typename V, typename M> class LBFGS : public MinimizerBase<V, M> {
   using Base = MinimizerBase<V, M>;
   using Base::_iters;
   using Base::_max_iters;
@@ -48,10 +48,11 @@ public:
     V p = -grad;          ///< Initial descent direction.
     V x_new = x;          ///< Updated point.
 
+    const bool timing = (this->recorder_ != nullptr);
+    if (this->recorder_) this->recorder_->reset();
+    auto start_time = std::chrono::steady_clock::now();
+
     for (_iters = 0; _iters < _max_iters; ++_iters) {
-      std::cout << _max_iters << std::endl;
-      std::cout << "iters: " << _iters << " grad norm: " << grad.norm() << std::endl;
-      
       // Stopping condition based on gradient norm
       if (grad.norm() < _tol) {
         break;
@@ -60,13 +61,12 @@ public:
       // Compute L-BFGS search direction
       p = compute_direction(grad, s_list, y_list, rho_list);
 
-      //avoid xplosions
+      // avoid xplosions
       if (_iters == 0)
         alpha_wolfe = std::min(1.0, 1.0 / grad.norm());
       else
         alpha_wolfe = this->line_search(x, p, f, Gradient);
       // Wolfe line search to select step length
-      
 
       // Point update
       x_new = x + alpha_wolfe * p;
@@ -78,25 +78,34 @@ public:
 
       x = x_new;
 
+      double ys = y.dot(s);
 
-      double ys = y.dot(s); 
+      // check curvature for non convex problems
+      if (ys > 1e-10) {
+        double rho = 1.0 / ys;
+        s_list.push_back(s);
+        y_list.push_back(y);
+        rho_list.push_back(rho);
 
-      //check curvature for non convex problems
-      if (ys > 1e-10) { 
-          double rho = 1.0 / ys;
-          s_list.push_back(s);
-          y_list.push_back(y);
-          rho_list.push_back(rho);
-
-          // Enforce memory limit m
-          if (s_list.size() > m) {
-            s_list.erase(s_list.begin());
-            y_list.erase(y_list.begin());
-            rho_list.erase(rho_list.begin());
-          }
+        // Enforce memory limit m
+        if (s_list.size() > m) {
+          s_list.erase(s_list.begin());
+          y_list.erase(y_list.begin());
+          rho_list.erase(rho_list.begin());
+        }
       }
-      
+
       grad = grad_new;
+
+      if (this->recorder_) {
+        double loss = f(x);
+        double elapsed_ms = 0.0;
+        if (timing) {
+          auto now = std::chrono::steady_clock::now();
+          elapsed_ms = std::chrono::duration<double, std::milli>(now - start_time).count();
+        }
+        this->recorder_->record(_iters, loss, grad.norm(), elapsed_ms);
+      }
     }
 
     return x;
@@ -116,10 +125,8 @@ public:
    *
    * @return Search direction p_k, typically a descent direction.
    */
-  V compute_direction(const V &grad,
-                      const std::vector<V> &s_list,
-                      const std::vector<V> &y_list,
-                      const std::vector<double> &rho_list) {
+  V compute_direction(
+      const V &grad, const std::vector<V> &s_list, const std::vector<V> &y_list, const std::vector<double> &rho_list) {
 
     // If no curvature information is available, fall back to steepest descent
     if (s_list.empty()) {
@@ -137,8 +144,7 @@ public:
     }
 
     // Scaling of the initial Hessian approximation H0 = γ I
-    double gamma = s_list.back().dot(y_list.back()) /
-                   y_list.back().dot(y_list.back());
+    double gamma = s_list.back().dot(y_list.back()) / y_list.back().dot(y_list.back());
 
     // Apply H0
     z = gamma * q;
