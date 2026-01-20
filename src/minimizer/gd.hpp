@@ -1,8 +1,9 @@
 #pragma once
 
-#include "common.hpp"
+#include "../common.hpp"
 #include "minimizer_base.hpp"
 #include <Eigen/Eigen>
+#include <iostream>
 
 /**
  * @brief Full-batch gradient descent with optional line search.
@@ -22,7 +23,10 @@ public:
   void useLineSearch(bool enable) noexcept { use_line_search = enable; }
 
   V solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient) override {
+        
     for (_iters = 0; _iters < _max_iters; ++_iters) {
+      std::cout << "iter: " << _iters << std::endl;
+
       V g = Gradient(x);
       if (g.norm() < _tol)
         break;

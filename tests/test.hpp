@@ -1,4 +1,4 @@
-#include "../src/minimizer_base.hpp"
+#include "../src/minimizer/minimizer_base.hpp"
 #include <chrono>
 #include <functional>
 #include <iostream>

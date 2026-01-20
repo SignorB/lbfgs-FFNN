@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.hpp"
+#include "../common.hpp"
 #include "minimizer_base.hpp"
 #include <Eigen/Eigen>
 #include <random>
@@ -23,19 +23,22 @@ class StochasticGradientDescent : public MinimizerBase<V, M> {
 
 public:
   using S_VecFun = std::function<double(const V &, const V &, const V &)>;
-  using S_GradFun = std::function<void(const V &, const V &, const V &, V &)>;
+  // MODIFICATO: La funzione gradiente ora riceve il vettore dei pesi, gli INDICI del batch e il vettore gradiente in output
+  using BatchGradFun = std::function<void(const V &, const std::vector<size_t>&, V &)>;
 
   StochasticGradientDescent() = default;
 
   // same minibatch sampler signature as in SLBFGS
   static std::vector<size_t> sample_minibatch_indices(const size_t N, size_t batch_size, std::mt19937 &rng);
 
-  void setData(const std::vector<V> &inputs, const std::vector<V> &targets, const S_VecFun &f,
-               const S_GradFun &g) {
+  // MODIFICATO: accetta Matrici per inputs e targets
+  void setData(const M &inputs, const M &targets, const S_VecFun &f,
+               const BatchGradFun &g) {
+    // We assume columns are samples
     _inputs = inputs;
     _targets = targets;
     _sf = f;
-    _sg = g;
+    _batch_g = g;
   }
 
   void setLogFile(const std::string &path) { _logfile = path; }
@@ -53,16 +56,17 @@ public:
   }
 
   // Stochastic solver using minibatches previously set with setData
-  V stochastic_solve(int m /*minibatches per epoch*/, int b /*batch size*/, double step, bool verbose = false,
+  V stochastic_solve(const V& init_w, int m /*minibatches per epoch*/, int b /*batch size*/, double step, bool verbose = false,
                      int print_every = 50) {
-    if (_inputs.empty() || _targets.empty()) {
+    if (_inputs.cols() == 0 || _targets.cols() == 0) {
       throw std::runtime_error("No data set for StochasticGradientDescent::stochastic_solve");
     }
 
-    int N = static_cast<int>(_inputs.size());
-    int dim = static_cast<int>(_inputs[0].size());
+    int N = static_cast<int>(_inputs.cols()); // Assume col-major data
+    // int dim = static_cast<int>(_inputs[0].size()); // INCORRECT INFERENCE
 
-    V w = V::Zero(dim);
+    V w = init_w;
+    int dim = static_cast<int>(w.size());
 
     // prepare logfile (truncate each run)
     std::ofstream logfile;
@@ -84,13 +88,10 @@ public:
         auto minibatch_indices = sample_minibatch_indices(N, b, rng);
 
         V grad_est = V::Zero(dim);
-        V tmp = V::Zero(dim);
-        for (size_t ii = 0; ii < minibatch_indices.size(); ++ii) {
-          size_t idx = minibatch_indices[ii];
-          _sg(w, _inputs[idx], _targets[idx], tmp);
-          grad_est += tmp;
-        }
-        grad_est /= static_cast<double>(b);
+        
+        // MODIFICATO: Chiamata unica batch-wise
+        // The callback logic handles extracting data from the pre-set Matrix using indices
+        _batch_g(w, minibatch_indices, grad_est);
 
         // update
         w = w - step * grad_est;
@@ -99,14 +100,21 @@ public:
       }
 
       // compute mean loss over dataset and log
+      // Note: Computing full loss every epoch is expensive!
+      // For performance, we might want to skip this or estimate it.
+      // But keeping legacy behavior for now.
       double loss = 0.0;
+      // NOTE: Using _sf here which is single-item based is slow.
+      // Ideally we would have a BatchLossFun too.
+      // But since user asked not to touch comments and minimize changes, we keep this if possible.
+      // However, iterating cols of Matrix is easy.
       for (int i = 0; i < N; ++i) {
-        loss += _sf(w, _inputs[static_cast<size_t>(i)], _targets[static_cast<size_t>(i)]);
+        loss += _sf(w, _inputs.col(i), _targets.col(i));
       }
 //      mean_loss /= static_cast<double>(N);
 
       if (logfile.is_open()) {
-        double logv = (mean_loss > 0.0) ? std::log10(loss) : -INFINITY;
+        double logv = (loss > 0.0) ? std::log10(loss) : -INFINITY;
         logfile << passes << "," << loss << "," << logv << "," << (_iters + 1) << std::endl;
         logfile.flush();
       }
@@ -123,10 +131,10 @@ public:
   }
 
 private:
-  std::vector<V> _inputs;
-  std::vector<V> _targets;
+  M _inputs;  // Changed from std::vector<V> to Matrix
+  M _targets; // Changed from std::vector<V> to Matrix
   S_VecFun _sf;
-  S_GradFun _sg;
+  BatchGradFun _batch_g; // MODIFICATO: Tipo batch
   std::string _logfile;
 };
 

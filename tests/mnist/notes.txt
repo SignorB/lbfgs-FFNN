@@ -1,0 +1,8 @@
+ITERS: 50, MNIST
+
+
+ALGO    TRAIN  TEST  TIME
+SLBFGS  96.5   91.7  117.02s user 19.23s system 264% cpu 51.447 total
+LBFGS   89.4   82.9  78.53s user 13.20s system 298% cpu 30.697 total
+GD      79.56  72.6  19.51s user 3.21s system 303% cpu 7.474 total
+SGD     93.56  88    34.61s user 2.05s system 182% cpu 20.088 total
