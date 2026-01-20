@@ -9,10 +9,10 @@
 #include <type_traits>
 
 // CPU Headers
-#include "gd.hpp"
-#include "s_lbfgs.hpp"
-#include "lbfgs.hpp"
-#include "s_gd.hpp"
+#include "minimizer/gd.hpp"
+#include "minimizer/s_lbfgs.hpp"
+#include "minimizer/lbfgs.hpp"
+#include "minimizer/s_gd.hpp"
 
 /**
  * @struct UnifiedConfig

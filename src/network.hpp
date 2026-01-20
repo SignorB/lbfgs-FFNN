@@ -5,9 +5,9 @@
 #include <memory>
 #include <random>
 #include <vector>
-#include "minimizer_base.hpp"
-#include "s_lbfgs.hpp"
-#include "s_gd.hpp"
+#include "minimizer/minimizer_base.hpp"
+#include "minimizer/s_lbfgs.hpp"
+#include "minimizer/s_gd.hpp"
 #include <iostream>
 
 class Network {

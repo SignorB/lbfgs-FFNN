@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.hpp"
+#include "../common.hpp"
 #include "minimizer_base.hpp"
 #include <autodiff/forward/dual.hpp>
 #include <Eigen/Eigen>

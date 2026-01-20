@@ -1,5 +1,5 @@
 #include "../../src/enzyme/pinn_network.hpp"
-#include "../../src/lbfgs.hpp"
+#include "../../src/minimizer/lbfgs.hpp"
 #include <iomanip>
 #include <vector>
 #include <cmath>

@@ -1,67 +1,55 @@
-#include "mnist_loader.hpp"
-#include "../../src/network.hpp"
-#include "../../src/lbfgs.hpp"
+#include "../../src/unified_launcher.hpp"
 #include "../../src/common.hpp"
-#include "../../src/s_lbfgs.hpp"
+#include "mnist_loader.hpp"
+#include <iostream>
+#include <omp.h>
 
-
-using Vec = Eigen::VectorXd;
-using Mat = Eigen::MatrixXd;
+using Backend = CudaBackend; 
 
 int main() {
   checkParallelism();
-  
+  UnifiedLauncher<Backend> launcher;
+
+    std::cout << "Building Network..." << std::endl;
+    launcher.addLayer<784, 128, Tanh>();
+    launcher.addLayer<128, 10, Linear>();
+    launcher.buildNetwork();
+
     int train_size = 5000;
     int test_size = 1000;
 
     std::cout << "Loading Training Data..." << std::endl;
-    Mat train_x = MNISTLoader::loadImages("../tests/mnist/train-images.idx3-ubyte", train_size);
-    Mat train_y = MNISTLoader::loadLabels("../tests/mnist/train-labels.idx1-ubyte", train_size);
+    Eigen::MatrixXd train_x = MNISTLoader::loadImages("../tests/mnist/train-images.idx3-ubyte", train_size);
+    Eigen::MatrixXd train_y = MNISTLoader::loadLabels("../tests/mnist/train-labels.idx1-ubyte", train_size);
 
     std::cout << "Loading Test Data..." << std::endl;
-    Mat test_x = MNISTLoader::loadImages("../tests/mnist/t10k-images.idx3-ubyte", test_size);
-    Mat test_y = MNISTLoader::loadLabels("../tests/mnist/t10k-labels.idx1-ubyte", test_size);
+    Eigen::MatrixXd test_x = MNISTLoader::loadImages("../tests/mnist/t10k-images.idx3-ubyte", test_size);
+    Eigen::MatrixXd test_y = MNISTLoader::loadLabels("../tests/mnist/t10k-labels.idx1-ubyte", test_size);
 
-    Network network;
-    network.addLayer<784, 128, Tanh>();
-    network.addLayer<128, 10, Linear>();
-    network.bindParams();
+    UnifiedDataset dataset;
+    dataset.train_x = train_x;
+    dataset.train_y = train_y;
+    dataset.test_x = test_x;
+    dataset.test_y = test_y;
 
+    launcher.setData(dataset);
 
+    UnifiedConfig config;
+    config.name = "MNIST_Unified_GD";
+    config.max_iters = 10;
+    config.tolerance = 1e-4;
+    config.learning_rate = 0.05; // Normalized gradients allow higher LR, but 1.0 was too edge-case. Trying 0.5.
+    config.log_interval = 1;
+
+    // Strategy Pattern: Instantiate Optimizer
+    std::cout << "Instantiating Optimizer Strategy (SGD)..." << std::endl;
+    UnifiedSGD<Backend> optimizer; 
     
-    
-    std::shared_ptr<SLBFGS<Vec, Mat>> solver = std::make_shared<SLBFGS<Vec, Mat>>();
-    solver->setMaxIterations(500);
-    solver->setTolerance(1.5e-4);
-    //CSV output (passes, loss, log10_loss, iteration)
-    solver->setLogFile("slbfgs_training_5000.csv");
-    
-    int b=64;      //gradient minibatch size
-    int b_H=1.5*b;    //Hessian minibatch siz
-    int m=train_size/b;    //number of minibatches
-    int M_param=10; //memory parameter
-    int L=20;       //number of epochs between Hessian updates
-    double step_size=0.01; 
-    
-    std::cout << "\nStarting Training..." << std::endl;
-    
-    
-    network.train_stochastic(train_x, train_y, solver, m, M_param, L, b, b_H, step_size, false, 1000);
-    
+    std::cout << "Starting Training..." << std::endl;
+    launcher.train(optimizer, config);
 
-/*
-std::shared_ptr<MinimizerBase<Vec, Mat>> solver = std::make_shared<LBFGS<Vec, Mat>>();
-solver->setMaxIterations(500);
-solver->setTolerance(1.e-4);
-*/
-
-
-
-    std::cout << "\nTRAINING SET RESULTS:" << std::endl;
-    network.test(train_x, train_y);
-
-    std::cout << "\nTEST SET RESULTS:" << std::endl;
-    network.test(test_x, test_y);
+    std::cout << "\n>>> Evaluating on Test Set..." << std::endl;
+    launcher.test();
 
     return 0;
 }

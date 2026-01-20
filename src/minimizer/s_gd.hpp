@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.hpp"
+#include "../common.hpp"
 #include "minimizer_base.hpp"
 #include <Eigen/Eigen>
 #include <random>

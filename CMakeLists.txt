@@ -21,6 +21,12 @@ add_compile_options(
     $<$<COMPILE_LANGUAGE:CXX>:-Wextra>
     $<$<COMPILE_LANGUAGE:CXX>:-ftemplate-depth=32768>
     $<$<COMPILE_LANGUAGE:CXX>:-DNDEBUG>
+    $<$<COMPILE_LANGUAGE:CUDA>:-O3>
+    $<$<COMPILE_LANGUAGE:CUDA>:-DNDEBUG>
+    $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-march=native>
+    $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-O3>
+    $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-Wall>
+    $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-Wextra>
 )
 
 find_package(Eigen3 REQUIRED)
@@ -34,15 +40,13 @@ add_subdirectory(lib/autodiff)
 
 add_executable(test_runner tests/main.cpp)
 add_executable(test_runner_autodiff tests/autodiff_tests.cpp)
-add_executable(test_mnist tests/mnist/main.cpp)
 
-set(CXX_TARGETS test_runner test_runner_autodiff test_mnist)
+set(CXX_TARGETS test_runner test_runner_autodiff)
 foreach(TARGET ${CXX_TARGETS})
     target_link_libraries(${TARGET} PRIVATE autodiff::autodiff Eigen3::Eigen)
 endforeach()
 
-add_executable(test_unified tests/unified_test.cpp)
-target_link_libraries(test_unified PRIVATE autodiff::autodiff Eigen3::Eigen)
+
 
 
 option(ENABLE_CUDA "Enable CUDA support" OFF)
@@ -61,11 +65,11 @@ if(ENABLE_CUDA)
             set(CMAKE_CUDA_ARCHITECTURES 86)
         endif()
 
-        set_source_files_properties(tests/mnist/main2.cpp PROPERTIES LANGUAGE CUDA)
+        set_source_files_properties(tests/mnist/main.cpp PROPERTIES LANGUAGE CUDA)
 
         add_executable(test_mnist_cuda tests/cuda/mnist.cu)
         add_executable(test_fashion_cuda tests/cuda/fashion.cu)
-        # test_mnist_unified is added globally below
+
         
         target_link_libraries(test_mnist_cuda PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
         target_link_libraries(test_fashion_cuda PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
@@ -77,11 +81,11 @@ if(ENABLE_CUDA)
 endif()
 
 # Unified MNIST Test (Works on CPU too)
-add_executable(test_mnist_unified tests/mnist/main2.cpp)
-target_link_libraries(test_mnist_unified PRIVATE autodiff::autodiff Eigen3::Eigen)
+add_executable(test_mnist tests/mnist/main.cpp)
+target_link_libraries(test_mnist PRIVATE autodiff::autodiff Eigen3::Eigen)
 
 if(ENABLE_CUDA)
-    target_link_libraries(test_mnist_unified PRIVATE CUDA::cublas CUDA::cudart)
+    target_link_libraries(test_mnist PRIVATE CUDA::cublas CUDA::cudart)
 endif()
 
 find_package(OpenMP)
@@ -90,19 +94,17 @@ if(OpenMP_CXX_FOUND)
     message(STATUS "OpenMP found! Enabling Eigen parallelization.")
     target_link_libraries(test_mnist PRIVATE OpenMP::OpenMP_CXX)
     
-    if(TARGET test_mnist_unified)
-        target_link_libraries(test_mnist_unified PRIVATE OpenMP::OpenMP_CXX)
-        target_compile_definitions(test_mnist_unified PRIVATE EIGEN_USE_OPENMP)
+    if(TARGET test_mnist)
+        target_link_libraries(test_mnist PRIVATE OpenMP::OpenMP_CXX)
+        target_compile_definitions(test_mnist PRIVATE EIGEN_USE_OPENMP)
     endif()
 
     target_compile_definitions(test_mnist PRIVATE EIGEN_USE_OPENMP)
     
-    if(ENABLE_CUDA AND TARGET test_mnist_unified)
-        target_compile_options(test_mnist_unified PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler -fopenmp>)
+    if(ENABLE_CUDA AND TARGET test_mnist)
+        target_compile_options(test_mnist PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler -fopenmp>)
     endif()
 else()
     message(WARNING "OpenMP not found. Eigen will run in single-thread mode.")
 endif()
 
-add_executable(test_sgd_batch tests/test_sgd_batch.cpp)
-target_link_libraries(test_sgd_batch PRIVATE autodiff::autodiff Eigen3::Eigen)

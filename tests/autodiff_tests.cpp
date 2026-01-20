@@ -1,11 +1,11 @@
 #include "test.hpp"
 #include <unsupported/Eigen/IterativeSolvers>
 
-#include "../src/bfgs.hpp"
+#include "../src/minimizer/bfgs.hpp"
 #include "../src/common.hpp"
-#include "../src/gd.hpp"
-#include "../src/lbfgs.hpp"
-#include "../src/newton.hpp"
+#include "../src/minimizer/gd.hpp"
+#include "../src/minimizer/lbfgs.hpp"
+#include "../src/minimizer/newton.hpp"
 
 #include <autodiff/reverse/var.hpp>
 #include <autodiff/reverse/var/eigen.hpp>

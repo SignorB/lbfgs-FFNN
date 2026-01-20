@@ -33,6 +33,10 @@ public:
     net_wrapper_.getInternal().test(dataset_.train_x, dataset_.train_y, "Training Results");
   }
 
+  void test() {
+    net_wrapper_.getInternal().test(dataset_.test_x, dataset_.test_y, "Test Results");
+  }
+
   NetworkWrapper<CpuBackend> &getWrapper() { return net_wrapper_; }
 
 private:
@@ -84,6 +88,10 @@ public:
     optimizer.optimize(handle_, net_wrapper_, dataset_, d_train_x_, d_train_y_, config);
 
     evaluate();
+  }
+
+  void test() {
+      evaluate();
   }
 
   void evaluate() {
