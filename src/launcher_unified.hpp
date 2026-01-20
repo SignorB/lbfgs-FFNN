@@ -30,7 +30,7 @@ public:
     optimizer.optimize(net_wrapper_, dataset_, config);
 
     
-    net_wrapper_.getInternal().test(dataset_.test_x, dataset_.test_y);
+    net_wrapper_.getInternal().test(dataset_.train_x, dataset_.train_y, "Training Results");
   }
 
   NetworkWrapper<CpuBackend> &getWrapper() { return net_wrapper_; }

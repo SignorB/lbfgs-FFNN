@@ -123,7 +123,7 @@ public:
 
 /**
  * @class UnifiedSGD_CPU
- * @brief Stochastic Gradient Descent implementation for CPU (Optimized with Static Allocation).
+ * @brief Stochastic Gradient Descent implementation for CPU (Optimized with Batch Matrix Ops).
  */
 class UnifiedSGD_CPU : public UnifiedOptimizer<CpuBackend> {
 public:
@@ -134,109 +134,24 @@ public:
         auto minimizer = std::make_shared<StochasticGradientDescent<Vec, Mat>>();
         minimizer->setMaxIterations(config.max_iters);
         minimizer->setStepSize(config.learning_rate);
+        minimizer->setLogFile("sgd_log.csv"); // Optional logging
         
-        std::cout << "Preparing data..." << std::endl;
+        std::cout << "Starting Batch SGD (CPU Optimized)..." << std::endl;
         
-        // Setup dummy vectors per s_gd (usati solo per size e logging)
-        std::vector<Vec> inputs(data.train_x.cols());
-        std::vector<Vec> targets(data.train_y.cols()); // Vuoto o popolato se serve al logger interno
-        
-        // Popoliamo inputs per dare a s_gd la dimensione corretta del dataset (N)
-        // Nota: non copiamo i dati veri qui se non strettamente necessario per il logger,
-        // ma s_gd si aspetta vector non vuoti per calcolare N.
-        // Se vuoi risparmiare RAM e non usi il logger interno di s_gd per la loss, 
-        // potresti passare vector vuoti ma modificare s_gd per accettare N esplicito.
-        // Per compatibilità col tuo codice attuale, popoliamo i puntatori:
-        for(int i=0; i<data.train_x.cols(); ++i) {
-             // Hack leggero: usiamo col(i) che è un blocco, verrà copiato in Vec.
-             // Se hai problemi di RAM con dataset enormi, questo va cambiato in s_gd.
-             inputs[i] = data.train_x.col(i);
-             targets[i] = data.train_y.col(i);
-        }
-
-        auto& network = net.getInternal();
-
-        // -----------------------------------------------------------
-        // 1. PRE-ALLOCAZIONE STATICA (Buffer riutilizzabili)
-        // -----------------------------------------------------------
-        long input_rows = data.train_x.rows();
-        long output_rows = data.train_y.rows();
-        
-        // Allocazione Heap fatta UNA volta sola qui
-        // Capacity = batch_size. Se un batch è più piccolo, ridimensioniamo logicamente.
-        Eigen::MatrixXd batch_x_buffer(input_rows, config.batch_size);
-        Eigen::MatrixXd batch_y_buffer(output_rows, config.batch_size);
-
-        // -----------------------------------------------------------
-        // 2. BATCH CALLBACK
-        // -----------------------------------------------------------
-        auto batch_g = [&, input_rows, output_rows](const Vec &w, const std::vector<size_t>& indices, Vec &grad) mutable {
-             network.setParams(w);
-             network.zeroGrads();
-             
-             long current_bs = indices.size();
-
-             // Gestione dimensioni: Resize è economico se la capacità è già sufficiente.
-             // Eigen non libera la memoria qui, cambia solo i contatori interni.
-             if(batch_x_buffer.cols() != current_bs) {
-                 batch_x_buffer.resize(input_rows, current_bs);
-                 batch_y_buffer.resize(output_rows, current_bs);
-             }
-
-             // COPIA DATI (Gather) - Unico vero overhead rimasto
-             // Copiamo le colonne sparse dal dataset globale ai buffer contigui
-             // #pragma omp parallel for if(current_bs > 64) // Opzionale: parallelizza copia su grandi batch
-             for(size_t i=0; i < current_bs; ++i) {
-                 batch_x_buffer.col(i) = data.train_x.col(indices[i]);
-                 batch_y_buffer.col(i) = data.train_y.col(indices[i]);
-             }
-             
-             // Forward (Matrice x Matrice ottimizzata BLAS/AVX)
-             const auto &output = network.forward(batch_x_buffer);
-             
-             // Backward (Output - Target)
-             // Nota: output e batch_y_buffer hanno size allineato
-             network.backward(output - batch_y_buffer); 
-             
-             // Recupero gradienti sommati
-             network.getGrads(grad);
-
-             // Media sul batch
-             grad /= static_cast<double>(current_bs);
-        };
-
-        // Callback per la loss (usata per il logging)
-        auto f = [&](const Vec &w, const Vec &x, const Vec &y) -> double {
-             // Implementazione semplificata single-sample per compatibilità logger
-             // (Non influisce sulla velocità del training loop principale)
-             network.setParams(w);
-             Eigen::MatrixXd input_mat(x.size(), 1);
-             input_mat.col(0) = x;
-             const auto &output = network.forward(input_mat);
-             return 0.5 * (output.col(0) - y).squaredNorm();
-        };
-
-        minimizer->setData(inputs, targets, f, batch_g);
-        
-        int m = data.train_x.cols() / config.batch_size;
+        int m = static_cast<int>(data.train_x.cols()) / config.batch_size;
         if(m == 0) m = 1;
 
-        std::cout << "Extracting initial weights..." << std::endl;
-        Vec w_init(network.getSize());
-        std::copy(network.getParamsData(), network.getParamsData() + network.getSize(), w_init.data());
-
-        std::cout << "Starting optimized training loop..." << std::endl;
-        
-        Vec w_final = minimizer->stochastic_solve(
-            w_init,
+        // Delegate to efficient Network implementation
+        net.getInternal().train_sgd(
+            data.train_x, 
+            data.train_y, 
+            minimizer, 
             m, 
             config.batch_size, 
             config.learning_rate, 
             true, 
             config.log_interval
         );
-        
-        network.setParams(w_final);
     }
 };
 
@@ -346,6 +261,8 @@ public:
         int m = data.train_x.cols() / config.batch_size;
         if(m==0) m=1;
 
+        // No need to set params here, train_stochastic handles it via direct solve call
+        
         net.getInternal().train_stochastic(
             data.train_x, 
             data.train_y, 

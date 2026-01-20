@@ -26,12 +26,12 @@ int main() {
     // 4. Configure Run
     UnifiedConfig config;
     config.name = "TestCPU";
-    config.optimizer = "gd";
     config.max_iters = 5; // Short run
     config.learning_rate = 0.01;
 
     // 5. Train
-    launcher.train(config);
+    UnifiedGD<CpuBackend> optimizer;
+    launcher.train(optimizer, config);
 
     std::cout << "Training finished." << std::endl;
 

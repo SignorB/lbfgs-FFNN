@@ -1,5 +1,4 @@
 #include "../../src/launcher_unified.hpp"
-#include "../../src/cuda/cublas_handle.cuh"
 #include "../../src/common.hpp"
 #include "mnist_loader.hpp"
 #include <iostream>
@@ -8,7 +7,6 @@
 using Backend = CpuBackend; 
 
 int main() {
-  Eigen::setNbThreads(4);
   checkParallelism();
   UnifiedLauncher<Backend> launcher;
 
@@ -37,22 +35,21 @@ int main() {
     launcher.setData(dataset);
 
     UnifiedConfig config;
-    config.name = "MNIST_Unified_Test";
-    config.max_iters = 500;
-    config.tolerance = 1.5e-4;
-    config.batch_size = 32;   
-    config.b_H_param = 96;    
-    config.L_param = 20;      
-    config.m_param = 10;      
-    config.learning_rate = 0.01;
-    config.log_interval = 10;
+    config.name = "MNIST_Unified_GD";
+    config.max_iters = 10;
+    config.tolerance = 1e-4;
+    config.learning_rate = 0.05; // Normalized gradients allow higher LR, but 1.0 was too edge-case. Trying 0.5.
+    config.log_interval = 1;
 
     // Strategy Pattern: Instantiate Optimizer
-    std::cout << "Instantiating Optimizer Strategy..." << std::endl;
-    UnifiedLBFGS<Backend> optimizer; 
+    std::cout << "Instantiating Optimizer Strategy (SGD)..." << std::endl;
+    UnifiedSGD<Backend> optimizer; 
     
     std::cout << "Starting Training..." << std::endl;
     launcher.train(optimizer, config);
+
+    std::cout << "\n>>> Evaluating on Test Set..." << std::endl;
+    launcher.getWrapper().getInternal().test(dataset.test_x, dataset.test_y);
 
     return 0;
 }

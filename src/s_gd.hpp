@@ -31,9 +31,10 @@ public:
   // same minibatch sampler signature as in SLBFGS
   static std::vector<size_t> sample_minibatch_indices(const size_t N, size_t batch_size, std::mt19937 &rng);
 
-  // MODIFICATO: accetta BatchGradFun invece di S_GradFun
-  void setData(const std::vector<V> &inputs, const std::vector<V> &targets, const S_VecFun &f,
+  // MODIFICATO: accetta Matrici per inputs e targets
+  void setData(const M &inputs, const M &targets, const S_VecFun &f,
                const BatchGradFun &g) {
+    // We assume columns are samples
     _inputs = inputs;
     _targets = targets;
     _sf = f;
@@ -57,11 +58,11 @@ public:
   // Stochastic solver using minibatches previously set with setData
   V stochastic_solve(const V& init_w, int m /*minibatches per epoch*/, int b /*batch size*/, double step, bool verbose = false,
                      int print_every = 50) {
-    if (_inputs.empty() || _targets.empty()) {
+    if (_inputs.cols() == 0 || _targets.cols() == 0) {
       throw std::runtime_error("No data set for StochasticGradientDescent::stochastic_solve");
     }
 
-    int N = static_cast<int>(_inputs.size());
+    int N = static_cast<int>(_inputs.cols()); // Assume col-major data
     // int dim = static_cast<int>(_inputs[0].size()); // INCORRECT INFERENCE
 
     V w = init_w;
@@ -89,6 +90,7 @@ public:
         V grad_est = V::Zero(dim);
         
         // MODIFICATO: Chiamata unica batch-wise
+        // The callback logic handles extracting data from the pre-set Matrix using indices
         _batch_g(w, minibatch_indices, grad_est);
 
         // update
@@ -98,9 +100,16 @@ public:
       }
 
       // compute mean loss over dataset and log
+      // Note: Computing full loss every epoch is expensive!
+      // For performance, we might want to skip this or estimate it.
+      // But keeping legacy behavior for now.
       double loss = 0.0;
+      // NOTE: Using _sf here which is single-item based is slow.
+      // Ideally we would have a BatchLossFun too.
+      // But since user asked not to touch comments and minimize changes, we keep this if possible.
+      // However, iterating cols of Matrix is easy.
       for (int i = 0; i < N; ++i) {
-        loss += _sf(w, _inputs[static_cast<size_t>(i)], _targets[static_cast<size_t>(i)]);
+        loss += _sf(w, _inputs.col(i), _targets.col(i));
       }
 //      mean_loss /= static_cast<double>(N);
 
@@ -122,8 +131,8 @@ public:
   }
 
 private:
-  std::vector<V> _inputs;
-  std::vector<V> _targets;
+  M _inputs;  // Changed from std::vector<V> to Matrix
+  M _targets; // Changed from std::vector<V> to Matrix
   S_VecFun _sf;
   BatchGradFun _batch_g; // MODIFICATO: Tipo batch
   std::string _logfile;

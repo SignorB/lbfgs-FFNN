@@ -41,8 +41,8 @@ foreach(TARGET ${CXX_TARGETS})
     target_link_libraries(${TARGET} PRIVATE autodiff::autodiff Eigen3::Eigen)
 endforeach()
 
-
-
+add_executable(test_unified tests/unified_test.cpp)
+target_link_libraries(test_unified PRIVATE autodiff::autodiff Eigen3::Eigen)
 
 
 option(ENABLE_CUDA "Enable CUDA support" OFF)
@@ -65,7 +65,8 @@ if(ENABLE_CUDA)
 
         add_executable(test_mnist_cuda tests/cuda/mnist.cu)
         add_executable(test_fashion_cuda tests/cuda/fashion.cu)
-        add_executable(test_mnist_unified tests/mnist/main2.cpp)
+        # test_mnist_unified is added globally below
+        
         target_link_libraries(test_mnist_cuda PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
         target_link_libraries(test_fashion_cuda PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
 
@@ -75,18 +76,33 @@ if(ENABLE_CUDA)
     endif()
 endif()
 
+# Unified MNIST Test (Works on CPU too)
+add_executable(test_mnist_unified tests/mnist/main2.cpp)
+target_link_libraries(test_mnist_unified PRIVATE autodiff::autodiff Eigen3::Eigen)
+
+if(ENABLE_CUDA)
+    target_link_libraries(test_mnist_unified PRIVATE CUDA::cublas CUDA::cudart)
+endif()
+
 find_package(OpenMP)
 
 if(OpenMP_CXX_FOUND)
     message(STATUS "OpenMP found! Enabling Eigen parallelization.")
     target_link_libraries(test_mnist PRIVATE OpenMP::OpenMP_CXX)
-    target_link_libraries(test_mnist_unified PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart OpenMP::OpenMP_CXX)
-    target_compile_definitions(test_mnist PRIVATE EIGEN_USE_OPENMP)
-    target_compile_definitions(test_mnist_unified PRIVATE EIGEN_USE_OPENMP)
     
-    if(ENABLE_CUDA)
+    if(TARGET test_mnist_unified)
+        target_link_libraries(test_mnist_unified PRIVATE OpenMP::OpenMP_CXX)
+        target_compile_definitions(test_mnist_unified PRIVATE EIGEN_USE_OPENMP)
+    endif()
+
+    target_compile_definitions(test_mnist PRIVATE EIGEN_USE_OPENMP)
+    
+    if(ENABLE_CUDA AND TARGET test_mnist_unified)
         target_compile_options(test_mnist_unified PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler -fopenmp>)
     endif()
 else()
     message(WARNING "OpenMP not found. Eigen will run in single-thread mode.")
 endif()
+
+add_executable(test_sgd_batch tests/test_sgd_batch.cpp)
+target_link_libraries(test_sgd_batch PRIVATE autodiff::autodiff Eigen3::Eigen)
