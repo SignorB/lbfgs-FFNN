@@ -87,6 +87,23 @@ The S-LBFGS implementation follows the algorithm proposed by *Moritz et al. (201
 
 ---
 
+## Implementation Architecture (CPU + CUDA)
+
+The codebase is split into two concrete backends that share the same high-level flow (define a network, compute loss/gradients, and run an optimizer), but use different data structures and kernels:
+
+### CPU Backend (Eigen + OpenMP)
+
+- **Core optimizer API**: `src/minimizer_base.hpp` exposes a common interface plus line search and helpers for automatic differentiation (autodiff and optional Enzyme).
+- **Optimizers**: `src/lbfgs.hpp`, `src/bfgs.hpp`, `src/gd.hpp`, `src/s_gd.hpp`, `src/s_lbfgs.hpp`, `src/s_lbfgs_parallel.hpp`, `src/newton.hpp` implement deterministic and stochastic solvers on top of the base class.
+- **Network stack**: `src/network.hpp` and `src/layer.hpp` implement a dense MLP, with parameters packed in a flat array and gradients accumulated during backprop. Eigen matrices are used for forward/backward computations.
+
+### CUDA Backend
+
+- **CUDA primitives**: `src/cuda/device_buffer.cuh` wraps device memory, `src/cuda/cublas_handle.cuh` manages cuBLAS, and `src/cuda/kernels.cuh` hosts custom kernels (activation, loss, etc.).
+- **Network stack**: `src/cuda/network.cuh` and `src/cuda/layer.cuh` implement a GPU MLP. Parameters and gradients live in contiguous device buffers; per-layer activations/deltas are allocated per batch; GEMMs use cuBLAS.
+- **Optimizers**: `src/cuda/minimizer_base.cuh` defines a CUDA optimizer interface. `src/cuda/gd.cuh`, `src/cuda/sgd.cuh`, and `src/cuda/lbfgs.cuh` implement the training steps, with optional history tracking via `src/cuda/iteration_recorder.cuh`.
+- **Experiment runner**: `tests/cuda/launcher.hpp` wires datasets, networks, and optimizers together, logs CSV summaries, and produces history logs used by the plotting scripts.
+
 ## Organization of the Code
 
 The directory structure is as follows:
@@ -98,8 +115,11 @@ The directory structure is as follows:
   │   ├── lbfgs.hpp             # Deterministic L-BFGS
   │   ├── s_lbfgs.hpp           # Stochastic L-BFGS implementation (Serial)
   │   ├── s_lbfgs_parallel.hpp  # Stochastic L-BFGS implementation (OpenMP)
-  │   ├── s_gd.hpp              # Stochastic Gradient Descent implementation
-  │   └──  network.hpp           # Neural Network utilities (for testing/application)
+  │   ├── network.hpp           # CPU MLP utilities (Eigen)
+  │   └── cuda/                 # CUDA backend (network + optimizers + kernels)
+  ├── tests/
+  │   ├── mnist/                # CPU experiments (Eigen)
+  │   └── cuda/                 # CUDA experiments (MNIST/Fashion)
   └── ...
 ```
 
