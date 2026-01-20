@@ -92,13 +92,44 @@ public:
         using Vec = Eigen::VectorXd;
         using Mat = Eigen::MatrixXd;
         
-        auto minimizer = std::make_shared<GradientDescent<Vec, Mat>>();
+        auto minimizer = std::make_shared<cpu_mlp::GradientDescent<Vec, Mat>>();
         minimizer->setMaxIterations(config.max_iters);
         minimizer->setTolerance(config.tolerance);
         minimizer->setStepSize(config.learning_rate);
         minimizer->useLineSearch(false);
         
-        net.getInternal().train(data.train_x, data.train_y, minimizer);
+        auto& network = net.getInternal();
+        size_t params_size = network.getSize();
+        
+        Vec x(params_size);
+        std::copy(network.getParamsData(), network.getParamsData() + params_size, x.data());
+
+        VecFun<Vec, double> f = [&](const Vec &p) -> double {
+            network.setParams(p);
+            const auto &output = network.forward(data.train_x);
+            Mat diff = output - data.train_y;
+            double total_loss = 0.5 * diff.squaredNorm();
+            total_loss /= data.train_x.cols(); 
+            return total_loss;
+        };
+
+        GradFun<Vec> g = [&](const Vec &p) -> Vec {
+            network.setParams(p);
+            network.zeroGrads();
+
+            const auto &output = network.forward(data.train_x);
+            Mat loss_grad = output - data.train_y;
+            loss_grad /= data.train_x.cols();
+
+            network.backward(loss_grad);
+
+            Vec grad_vec(params_size);
+            network.getGrads(grad_vec);
+            return grad_vec;
+        };
+
+        Vec final_params = minimizer->solve(x, f, g);
+        network.setParams(final_params);
     }
 };
 
@@ -112,12 +143,43 @@ public:
         using Vec = Eigen::VectorXd;
         using Mat = Eigen::MatrixXd;
         
-        auto minimizer = std::make_shared<LBFGS<Vec, Mat>>();
+        auto minimizer = std::make_shared<cpu_mlp::LBFGS<Vec, Mat>>();
         minimizer->setMaxIterations(config.max_iters);
         minimizer->setTolerance(config.tolerance);
         minimizer->setHistorySize(config.m_param > 0 ? config.m_param : 10);
         
-        net.getInternal().train(data.train_x, data.train_y, minimizer);
+        auto& network = net.getInternal();
+        size_t params_size = network.getSize();
+        
+        Vec x(params_size);
+        std::copy(network.getParamsData(), network.getParamsData() + params_size, x.data());
+
+        VecFun<Vec, double> f = [&](const Vec &p) -> double {
+            network.setParams(p);
+            const auto &output = network.forward(data.train_x);
+            Mat diff = output - data.train_y;
+            double total_loss = 0.5 * diff.squaredNorm();
+            total_loss /= data.train_x.cols(); 
+            return total_loss;
+        };
+
+        GradFun<Vec> g = [&](const Vec &p) -> Vec {
+            network.setParams(p);
+            network.zeroGrads();
+
+            const auto &output = network.forward(data.train_x);
+            Mat loss_grad = output - data.train_y;
+            loss_grad /= data.train_x.cols();
+
+            network.backward(loss_grad);
+
+            Vec grad_vec(params_size);
+            network.getGrads(grad_vec);
+            return grad_vec;
+        };
+
+        Vec final_params = minimizer->solve(x, f, g);
+        network.setParams(final_params);
     }
 };
 
@@ -131,117 +193,75 @@ public:
         using Vec = Eigen::VectorXd;
         using Mat = Eigen::MatrixXd;
         
-        auto minimizer = std::make_shared<StochasticGradientDescent<Vec, Mat>>();
+        auto minimizer = std::make_shared<cpu_mlp::StochasticGradientDescent<Vec, Mat>>();
         minimizer->setMaxIterations(config.max_iters);
         minimizer->setStepSize(config.learning_rate);
-        minimizer->setLogFile("sgd_log.csv"); // Optional logging
+        minimizer->setLogFile("sgd_log.csv"); 
         
         std::cout << "Starting Batch SGD (CPU Optimized)..." << std::endl;
         
         int m = static_cast<int>(data.train_x.cols()) / config.batch_size;
         if(m == 0) m = 1;
 
-        // Delegate to efficient Network implementation
-        net.getInternal().train_sgd(
-            data.train_x, 
-            data.train_y, 
-            minimizer, 
+        auto& network = net.getInternal();
+        size_t params_size = network.getSize();
+
+        Vec weights(params_size);
+        std::copy(network.getParamsData(), network.getParamsData() + params_size, weights.data());
+
+        long input_rows = data.train_x.rows();
+        long output_rows = data.train_y.rows();
+        
+        Mat batch_x_buffer(input_rows, config.batch_size);
+        Mat batch_y_buffer(output_rows, config.batch_size);
+
+        auto batch_g = [&](const Vec &w, const std::vector<size_t>& indices, Vec &grad) mutable {
+             network.setParams(w);
+             network.zeroGrads();
+             
+             long current_bs = indices.size();
+
+             if(batch_x_buffer.cols() != current_bs) {
+                 batch_x_buffer.resize(input_rows, current_bs);
+                 batch_y_buffer.resize(output_rows, current_bs);
+             }
+
+             for(long i=0; i < current_bs; ++i) {
+                 batch_x_buffer.col(i) = data.train_x.col(indices[i]);
+                 batch_y_buffer.col(i) = data.train_y.col(indices[i]);
+             }
+             
+             const auto &output = network.forward(batch_x_buffer);
+             
+             Mat diff = output - batch_y_buffer;
+             network.backward(diff); 
+             
+             network.getGrads(grad);
+             grad /= static_cast<double>(current_bs);
+        };
+
+        auto f_single = [&](const Vec &w, const Vec &x, const Vec &y) -> double {
+             network.setParams(w);
+             Eigen::MatrixXd input_mat(x.size(), 1);
+             input_mat.col(0) = x;
+             const auto &output = network.forward(input_mat);
+             return 0.5 * (output.col(0) - y).squaredNorm();
+        };
+
+        minimizer->setData(data.train_x, data.train_y, f_single, batch_g);
+
+        Vec final_weights = minimizer->stochastic_solve(
+            weights,
             m, 
             config.batch_size, 
             config.learning_rate, 
-            true, 
+            true, // verbose
             config.log_interval
         );
+        
+        network.setParams(final_weights);
     }
 };
-
-// /**
-//  * @class UnifiedSGD_CPU
-//  * @brief Stochastic Gradient Descent implementation for CPU.
-//  */
-// class UnifiedSGD_CPU : public UnifiedOptimizer<CpuBackend> {
-// public:
-//     void optimize(NetworkWrapper<CpuBackend>& net, const UnifiedDataset& data, const UnifiedConfig& config) override {
-//         using Vec = Eigen::VectorXd;
-//         using Mat = Eigen::MatrixXd;
-        
-//         auto minimizer = std::make_shared<StochasticGradientDescent<Vec, Mat>>();
-//         minimizer->setMaxIterations(config.max_iters);
-//         minimizer->setStepSize(config.learning_rate);
-        
-//         std::cout << "preparing data..." << std::endl;
-//         std::vector<Vec> inputs(data.train_x.cols());
-//         std::vector<Vec> targets(data.train_y.cols());
-//         for (int i = 0; i < data.train_x.cols(); ++i) {
-//             inputs[i] = data.train_x.col(i);
-//             targets[i] = data.train_y.col(i);
-//         }
-
-//         // Prepare callbacks to wrap Network
-//         auto& network = net.getInternal();
-        
-//         // Loss Function Callback
-//         auto f = [&](const Vec &w, const Vec &x, const Vec &y) -> double {
-//              network.setParams(w);
-             
-//              // Forward expects Matrix (n, 1) to match column vector
-//              Eigen::MatrixXd input_mat(x.size(), 1);
-//              input_mat.col(0) = x;
-             
-//              const auto &output = network.forward(input_mat);
-//              Vec out_vec = output.col(0);
-
-             
-//              double loss =  0.5 * (out_vec - y).squaredNorm();
-//              return loss;
-//         };
-
-//         // Gradient Function Callback
-//         auto g = [&](const Vec &w, const Vec &x, const Vec &y, Vec &grad) {
-//              network.setParams(w);
-//              network.zeroGrads();
-             
-//              Eigen::MatrixXd input_mat(x.size(), 1);
-//              input_mat.col(0) = x;
-             
-//              const auto &output = network.forward(input_mat);
-             
-//              // Loss Gradient (assuming MSE loss gradient at output: out - target)
-//              Eigen::MatrixXd loss_grad_mat(y.size(), 1);
-//              loss_grad_mat.col(0) = output.col(0) - y;
-             
-//              network.backward(loss_grad_mat); 
-             
-//              network.getGrads(grad);
-//         };
-
-//         std::cout << "setting data..." << std::endl;
-//         minimizer->setData(inputs, targets, f, g);
-        
-//         int m = data.train_x.cols() / config.batch_size;
-//         if(m==0) m=1;
-
-//         std::cout << "extracting initial weights..." << std::endl;
-//         // Extract initial weights
-//         Vec w_init(network.getSize());
-//         std::copy(network.getParamsData(), network.getParamsData() + network.getSize(), w_init.data());
-
-//         std::cout << "solving..." << std::endl;
-        
-//         Vec w_final = minimizer->stochastic_solve(
-//             w_init,
-//             m, 
-//             config.batch_size, 
-//             config.learning_rate, 
-//             true, 
-//             config.log_interval
-//         );
-        
-        
-//         network.setParams(w_final);
-//     }
-// };
-
 
 /**
  * @class UnifiedSLBFGS_CPU
@@ -253,7 +273,7 @@ public:
         using Vec = Eigen::VectorXd;
         using Mat = Eigen::MatrixXd;
         
-        auto minimizer = std::make_shared<SLBFGS<Vec, Mat>>();
+        auto minimizer = std::make_shared<cpu_mlp::SLBFGS<Vec, Mat>>();
         minimizer->setMaxIterations(config.max_iters);
         minimizer->setTolerance(config.tolerance);
         
@@ -261,21 +281,96 @@ public:
         int m = data.train_x.cols() / config.batch_size;
         if(m==0) m=1;
 
-        // No need to set params here, train_stochastic handles it via direct solve call
+        auto& network = net.getInternal();
+        size_t params_size = network.getSize();
         
-        net.getInternal().train_stochastic(
-            data.train_x, 
-            data.train_y, 
-            minimizer,
+        Vec weights(params_size);
+        std::copy(network.getParamsData(), network.getParamsData() + params_size, weights.data());
+        double lambda = 1e-4; 
+
+        long input_rows = data.train_x.rows();
+        long output_rows = data.train_y.rows();
+        int N = data.train_x.cols();
+
+        Mat batch_x_buffer(input_rows, std::max(config.batch_size, 128));
+        Mat batch_y_buffer(output_rows, std::max(config.batch_size, 128));
+
+        auto batch_g = [&](const Vec &w, const std::vector<size_t>& indices, Vec &grad) mutable {
+            network.setParams(w);
+            network.zeroGrads();
+            
+            long current_bs = indices.size();
+            
+            if(batch_x_buffer.cols() < current_bs) {
+                batch_x_buffer.resize(input_rows, current_bs);
+                batch_y_buffer.resize(output_rows, current_bs);
+            }
+            
+            bool is_full_batch = (current_bs == N); 
+            
+            if (is_full_batch) {
+                 const auto& output = network.forward(data.train_x);
+                 Mat diff = output - data.train_y; 
+                 network.backward(diff);
+            } else {
+                 for(long i=0; i < current_bs; ++i) {
+                     batch_x_buffer.col(i) = data.train_x.col(indices[i]);
+                     batch_y_buffer.col(i) = data.train_y.col(indices[i]);
+                 }
+                 auto x_view = batch_x_buffer.leftCols(current_bs);
+                 auto y_view = batch_y_buffer.leftCols(current_bs);
+
+                 const auto& output = network.forward(x_view);
+                 Mat diff = output - y_view;
+                 network.backward(diff);
+            }
+
+            network.getGrads(grad);
+            grad /= static_cast<double>(current_bs);
+            grad.array() += lambda * w.array();
+        };
+
+        auto batch_f = [&](const Vec &w, const std::vector<size_t>& indices) -> double {
+            network.setParams(w);
+            long current_bs = indices.size();
+            
+             if(batch_x_buffer.cols() < current_bs) {
+                batch_x_buffer.resize(input_rows, current_bs);
+                batch_y_buffer.resize(output_rows, current_bs);
+            }
+            
+            for(long i=0; i < current_bs; ++i) {
+                 batch_x_buffer.col(i) = data.train_x.col(indices[i]);
+                 batch_y_buffer.col(i) = data.train_y.col(indices[i]);
+            }
+             auto x_view = batch_x_buffer.leftCols(current_bs);
+             auto y_view = batch_y_buffer.leftCols(current_bs);
+            
+            const auto &output = network.forward(x_view);
+            Vec diff_sq = (output - y_view).colwise().squaredNorm();
+            double loss = 0.5 * diff_sq.sum();
+            loss /= current_bs;
+            loss += 0.5 * lambda * w.squaredNorm();
+            return loss;
+        };
+
+        minimizer->setData(batch_f, batch_g);
+
+        Vec final_weights = minimizer->stochastic_solve(
+            weights,
+            batch_f,
+            batch_g,
             m, 
             config.m_param, 
             config.L_param, 
             config.batch_size, 
             b_H, 
             config.learning_rate, 
-            true, 
+            N, 
+            true, // verbose
             config.log_interval
         );
+        network.setParams(final_weights);
     }
 };
 
@@ -334,7 +429,7 @@ inline void run_cuda_solver(
     recorder.init(config.max_iters);
     solver->setRecorder(&recorder);
     
-    auto loss_grad = [&](const CudaScalar *params, CudaScalar *grad, const CudaScalar *input, const CudaScalar *target, int batch) -> CudaScalar {
+    auto loss_grad = [&](const CudaScalar * /*params*/, CudaScalar *grad, const CudaScalar *input, const CudaScalar *target, int batch) -> CudaScalar {
         CudaScalar loss = net.compute_loss_and_grad(input, target, batch);
         device_copy(grad, net.grads_data(), net.params_size());
         return loss;

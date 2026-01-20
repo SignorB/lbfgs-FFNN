@@ -19,22 +19,23 @@ struct CudaBackend {};
 template <typename T> struct ActivationToEnum;
 
 // Default/CPU mappings (not used for runtime enum but for checks if needed)
-template <> struct ActivationToEnum<Linear> { 
+// Default/CPU mappings (not used for runtime enum but for checks if needed)
+template <> struct ActivationToEnum<cpu_mlp::Linear> { 
 #ifdef __CUDACC__
     static constexpr cuda_mlp::ActivationType value = cuda_mlp::ActivationType::Linear; 
 #endif
 };
-template <> struct ActivationToEnum<Sigmoid> { 
+template <> struct ActivationToEnum<cpu_mlp::Sigmoid> { 
 #ifdef __CUDACC__
     static constexpr cuda_mlp::ActivationType value = cuda_mlp::ActivationType::Sigmoid; 
 #endif
 };
-template <> struct ActivationToEnum<Tanh> { 
+template <> struct ActivationToEnum<cpu_mlp::Tanh> { 
 #ifdef __CUDACC__
     static constexpr cuda_mlp::ActivationType value = cuda_mlp::ActivationType::Tanh; 
 #endif
 };
-template <> struct ActivationToEnum<ReLU> { 
+template <> struct ActivationToEnum<cpu_mlp::ReLU> { 
 #ifdef __CUDACC__
     static constexpr cuda_mlp::ActivationType value = cuda_mlp::ActivationType::ReLU; 
 #endif
@@ -48,7 +49,7 @@ class NetworkWrapper;
 template <>
 class NetworkWrapper<CpuBackend> {
 public:
-    using InternalNetwork = Network;
+    using InternalNetwork = cpu_mlp::Network;
 
     NetworkWrapper() = default;
 

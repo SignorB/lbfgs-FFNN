@@ -1,37 +1,26 @@
 #pragma once
 
 #include "../common.hpp"
-#include "minimizer_base.hpp"
+#include "full_batch_minimizer.hpp"
 #include <Eigen/Eigen>
+#include <iostream>
+
+namespace cpu_mlp {
 
 /**
  * @brief Newton minimizer (full Newton) for unconstrained optimization.
- *
- * At each iteration solves:
- *      H(x_k) p_k = -∇f(x_k)
- * then performs a line search along p_k.
- *
- * @tparam V Vector type (e.g. Eigen::VectorXd).
- * @tparam M Matrix type (e.g. Eigen::MatrixXd).
  */
 template <typename V, typename M>
-class Newton : public MinimizerBase<V, M> {
-  using Base = MinimizerBase<V, M>;
-  using Base::_hessFun;
+class Newton : public FullBatchMinimizer<V, M> {
+  using Base = FullBatchMinimizer<V, M>;
   using Base::_iters;
   using Base::_max_iters;
   using Base::_tol;
   using Base::line_search;
 
 public:
-  /**
-   * @brief Run Newton's method with line search.
-   *
-   * @param x Initial guess (passed by value).
-   * @param f Objective function.
-   * @param Gradient Gradient function.
-   * @return Approximate minimizer.
-   */
+  void setHessian(const HessFun<V, M> &hessFun) noexcept { _hessFun = hessFun; }
+
   V solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient) override {
     Eigen::LDLT<M> ldlt;
 
@@ -47,7 +36,6 @@ public:
       check(H.rows() == H.cols(), "Hessian must be square");
       check(H.rows() == g.size(), "Hessian/gradient size mismatch");
 
-      // Try to obtain a descent direction; if Hessian is not SPD, apply diagonal damping.
       V p;
       bool found = false;
       double mu = reg_init;
@@ -69,7 +57,6 @@ public:
       }
 
       if (!found) {
-        // Fall back to steepest descent if Hessian is unusable.
         p = -g;
       }
 
@@ -81,7 +68,10 @@ public:
   }
 
 private:
+  HessFun<V, M> _hessFun;
   double reg_init = 1e-6;   // Initial diagonal damping.
   double reg_max = 1e6;     // Maximum damping.
   double reg_growth = 10.0; // Growth factor for damping.
 };
+
+} // namespace cpu_mlp

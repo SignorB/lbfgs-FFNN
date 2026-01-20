@@ -12,7 +12,7 @@
 
 using Vec = Eigen::VectorXd;
 using Mat = Eigen::MatrixXd;
-using minimizerPtr = std::shared_ptr<MinimizerBase<Vec, Mat>>;
+using minimizerPtr = std::shared_ptr<cpu_mlp::FullBatchMinimizer<Vec, Mat>>;
 
 // Utility: compute gradient from an autodiff objective
 static Vec autodiff_grad(VecFun<autodiff::VectorXvar, autodiff::var> &f_ad, const Vec &x) {
@@ -60,7 +60,10 @@ void test_rastrigin(minimizerPtr &solver) {
   HessFun<Vec, Mat> hfun = [&](const Vec &x_in) { return autodiff_hessian(f_ad, x_in); };
   solver->setHessian(hfun);
 
-  Vec result = solver->solve(v, f_ad);
+  VecFun<Vec, double> f = [&](const Vec &x) { return autodiff_val(f_ad, x); };
+  GradFun<Vec> grad = [&](const Vec &x) { return autodiff_grad(f_ad, x); };
+
+  Vec result = solver->solve(v, f, grad);
   Vec g = autodiff_grad(f_ad, result);
   double f0 = autodiff_val(f_ad, v);
   double f1 = autodiff_val(f_ad, result);
@@ -98,7 +101,10 @@ void test_rosenbrock(minimizerPtr &solver) {
   HessFun<Vec, Mat> hfun = [&](const Vec &x_in) { return autodiff_hessian(f_ad, x_in); };
   solver->setHessian(hfun);
 
-  Vec result = solver->solve(v, f_ad);
+  VecFun<Vec, double> f = [&](const Vec &x) { return autodiff_val(f_ad, x); };
+  GradFun<Vec> grad = [&](const Vec &x) { return autodiff_grad(f_ad, x); };
+
+  Vec result = solver->solve(v, f, grad);
   Vec g = autodiff_grad(f_ad, result);
   double f0 = autodiff_val(f_ad, v);
   double f1 = autodiff_val(f_ad, result);
@@ -138,7 +144,10 @@ void test_ackley(minimizerPtr &solver) {
   HessFun<Vec, Mat> hfun = [&](const Vec &x_in) { return autodiff_hessian(f_ad, x_in); };
   solver->setHessian(hfun);
 
-  Vec result = solver->solve(v, f_ad);
+  VecFun<Vec, double> f = [&](const Vec &x) { return autodiff_val(f_ad, x); };
+  GradFun<Vec> grad = [&](const Vec &x) { return autodiff_grad(f_ad, x); };
+
+  Vec result = solver->solve(v, f, grad);
   Vec g = autodiff_grad(f_ad, result);
   double f0 = autodiff_val(f_ad, v);
   double f1 = autodiff_val(f_ad, result);
@@ -151,19 +160,19 @@ void test_ackley(minimizerPtr &solver) {
 }
 
 int main() {
-  minimizerPtr bfgs = std::make_shared<BFGS<Vec, Mat>>();
-  minimizerPtr lbfgs = std::make_shared<LBFGS<Vec, Mat>>();
-  auto gd = std::make_shared<GradientDescent<Vec, Mat>>();
+  minimizerPtr bfgs = std::make_shared<cpu_mlp::BFGS<Vec, Mat>>();
+  minimizerPtr lbfgs = std::make_shared<cpu_mlp::LBFGS<Vec, Mat>>();
+  auto gd = std::make_shared<cpu_mlp::GradientDescent<Vec, Mat>>();
   gd->setMaxIterations(20000);
   gd->setTolerance(1.e-10);
 
   using GMRES_Solver = Eigen::GMRES<Mat>;
   GMRES_Solver solver = GMRES_Solver();
-  minimizerPtr newton = std::make_shared<Newton<Vec, Mat>>();
+  minimizerPtr newton = std::make_shared<cpu_mlp::Newton<Vec, Mat>>();
 
   solver.setTolerance(1.e-12);
   solver.setMaxIterations(10000);
-  auto bfgs_gmres = std::make_shared<BFGS<Vec, Mat, GMRES_Solver>>((solver));
+  auto bfgs_gmres = std::make_shared<cpu_mlp::BFGS<Vec, Mat, GMRES_Solver>>((solver));
 
   auto suite = Tests::TestSuite<Vec, Mat>();
 

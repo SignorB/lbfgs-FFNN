@@ -4,15 +4,15 @@
 #include <iostream>
 #include <omp.h>
 
-using Backend = CudaBackend; 
+using Backend = CpuBackend; 
 
 int main() {
   checkParallelism();
   UnifiedLauncher<Backend> launcher;
 
     std::cout << "Building Network..." << std::endl;
-    launcher.addLayer<784, 128, Tanh>();
-    launcher.addLayer<128, 10, Linear>();
+    launcher.addLayer<784, 128, cpu_mlp::Tanh>();
+    launcher.addLayer<128, 10, cpu_mlp::Linear>();
     launcher.buildNetwork();
 
     int train_size = 5000;
@@ -36,14 +36,14 @@ int main() {
 
     UnifiedConfig config;
     config.name = "MNIST_Unified_GD";
-    config.max_iters = 10;
+    config.max_iters = 30;
     config.tolerance = 1e-4;
     config.learning_rate = 0.05; // Normalized gradients allow higher LR, but 1.0 was too edge-case. Trying 0.5.
     config.log_interval = 1;
 
     // Strategy Pattern: Instantiate Optimizer
     std::cout << "Instantiating Optimizer Strategy (SGD)..." << std::endl;
-    UnifiedLBFGS<Backend> optimizer; 
+    UnifiedSGD<Backend> optimizer; 
     
     std::cout << "Starting Training..." << std::endl;
     launcher.train(optimizer, config);
