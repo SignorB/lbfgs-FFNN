@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['bfgs_140',['BFGS',['../classBFGS.html',1,'']]]
+  ['bfgs_151',['BFGS',['../classBFGS.html',1,'']]]
 ];

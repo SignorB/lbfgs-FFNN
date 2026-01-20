@@ -986,6 +986,8 @@ INPUT_FILE_ENCODING    =
 FILE_PATTERNS          = *.c \
                          *.cc \
                          *.cxx \
+                         *.cuh \
+                         *.cu \
                          *.cxxm \
                          *.cpp \
                          *.cppm \

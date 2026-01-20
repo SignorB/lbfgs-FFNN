@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['vec_134',['Vec',['../trial__stochastic_8cpp.html#ad7310d7ffb591629de3cb8703b7f7815',1,'trial_stochastic.cpp']]],
-  ['vecfun_135',['VecFun',['../common_8hpp.html#a75719e23ed8385ead7495bd73816e78e',1,'common.hpp']]]
+  ['usedefaultsolver_143',['UseDefaultSolver',['../classBFGS.html#a72b433395204bd18b4be01aacd3dea3b',1,'BFGS']]],
+  ['uselinesearch_144',['useLineSearch',['../classGradientDescent.html#a97a36e721684cc44c367345a18429fb9',1,'GradientDescent']]]
 ];

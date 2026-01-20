@@ -1,11 +1,17 @@
 var searchData=
 [
-  ['m_71',['m',['../classMinimizerBase.html#a82e4ba96cc18ba6eb5dc097c6e6858c5',1,'MinimizerBase']]],
-  ['m_5fparam_72',['M_param',['../classMinimizerBase.html#a3b139b9539ba1b79054fc9183400672d',1,'MinimizerBase']]],
-  ['main_73',['main',['../trial__stochastic_8cpp.html#a840291bc02cba5474a4cb46a9b9566fe',1,'trial_stochastic.cpp']]],
-  ['mat_74',['Mat',['../trial__stochastic_8cpp.html#ac9df8723119335051ad09d1dc82cb101',1,'trial_stochastic.cpp']]],
-  ['max_5fline_5fiters_75',['max_line_iters',['../classMinimizerBase.html#a2f772242266d05b5eac185542061bec3',1,'MinimizerBase']]],
-  ['maxlayersize_76',['MaxLayerSize',['../classPINN.html#a1395ef5a0790412b15d0e0dbbc754a0e',1,'PINN']]],
-  ['minimizer_5fbase_2ehpp_77',['minimizer_base.hpp',['../minimizer__base_8hpp.html',1,'']]],
-  ['minimizerbase_78',['MinimizerBase',['../classMinimizerBase.html',1,'']]]
+  ['l_65',['L',['../classMinimizerBase.html#a318bc619468972e354b6e33a2fed673f',1,'MinimizerBase']]],
+  ['l_2dbfgs_20and_20stochastic_20l_2dbfgs_20for_20optimization_66',['L-BFGS and Stochastic L-BFGS for Optimization',['../index.html',1,'']]],
+  ['layer_67',['Layer',['../classLayer.html',1,'']]],
+  ['layer_2ecuh_68',['layer.cuh',['../layer_8cuh.html',1,'']]],
+  ['layer_2ehpp_69',['layer.hpp',['../layer_8hpp.html',1,'']]],
+  ['lbfgs_70',['LBFGS',['../classLBFGS.html',1,'']]],
+  ['lbfgs_2ecuh_71',['lbfgs.cuh',['../lbfgs_8cuh.html',1,'']]],
+  ['lbfgs_2ehpp_72',['lbfgs.hpp',['../lbfgs_8hpp.html',1,'']]],
+  ['lbfgs_5ftwo_5floop_73',['lbfgs_two_loop',['../s__lbfgs_8hpp.html#ae63fc9df888369272b2091f7ccada432',1,'lbfgs_two_loop(const std::vector&lt; V &gt; &amp;s_list, const std::vector&lt; V &gt; &amp;y_list, const std::vector&lt; double &gt; &amp;rho_list, const V &amp;v):&#160;s_lbfgs.hpp'],['../s__lbfgs__parallel_8hpp.html#ae63fc9df888369272b2091f7ccada432',1,'lbfgs_two_loop(const std::vector&lt; V &gt; &amp;s_list, const std::vector&lt; V &gt; &amp;y_list, const std::vector&lt; double &gt; &amp;rho_list, const V &amp;v):&#160;s_lbfgs_parallel.hpp']]],
+  ['line_5fsearch_74',['line_search',['../classMinimizerBase.html#aa0769b6918189dfe63a223fdb38dfc0a',1,'MinimizerBase']]],
+  ['linear_75',['Linear',['../structLinear.html',1,'']]],
+  ['loss_5ffun_76',['loss_fun',['../trial__stochastic_8cpp.html#a1d9fbfac35ac941ada287e962b8a703f',1,'trial_stochastic.cpp']]],
+  ['loss_5ffun_5fl1_77',['loss_fun_l1',['../trial__stochastic_8cpp.html#a2ca50175ba3d8a74692a33fed060cdfe',1,'trial_stochastic.cpp']]],
+  ['loss_5ffun_5freg_78',['loss_fun_reg',['../trial__stochastic_8cpp.html#a707a5dfb6c0ef8b91a6c6cb760ba7ab9',1,'trial_stochastic.cpp']]]
 ];

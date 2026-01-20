@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['tanh_155',['Tanh',['../structTanh.html',1,'']]]
+  ['tanh_166',['Tanh',['../structTanh.html',1,'']]]
 ];

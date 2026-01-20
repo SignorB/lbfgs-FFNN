@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['minimizerbase_147',['MinimizerBase',['../classMinimizerBase.html',1,'']]]
+  ['minimizerbase_158',['MinimizerBase',['../classMinimizerBase.html',1,'']]]
 ];

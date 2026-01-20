@@ -1,8 +1,9 @@
 var searchData=
 [
-  ['readme_2emd_92',['README.md',['../README_8md.html',1,'']]],
-  ['real_93',['Real',['../pinn__network_8hpp.html#a4b04262b81aa7d31eb5d2f607e2a35de',1,'Real():&#160;pinn_network.hpp'],['../pinn__network__batch_8hpp.html#a4b04262b81aa7d31eb5d2f607e2a35de',1,'Real():&#160;pinn_network_batch.hpp']]],
-  ['relu_94',['ReLU',['../structReLU.html',1,'']]],
-  ['requires_95',['requires',['../classBFGS.html#a72c3a429ac6abfeb01549b8269a01d93',1,'BFGS::requires(UseDefaultSolver)'],['../classBFGS.html#ac1bfaf4b147ac5534a583fdda00e5367',1,'BFGS::requires(!UseDefaultSolver)']]],
-  ['rho_96',['rho',['../classMinimizerBase.html#ae63ace2e6048a73df9260fdb5bd45117',1,'MinimizerBase']]]
+  ['params_96',['params',['../classPINN.html#a26885db5aa2543c45b58936cf28a8905',1,'PINN::params()'],['../classPINN.html#a90b78ab401b5e6bc1be11d46d0ce860b',1,'PINN::params()']]],
+  ['pinn_97',['PINN',['../classPINN.html',1,'PINN&lt; Layers &gt;'],['../classPINN.html#ac9feed4fc5d379756275dd32e745e4fd',1,'PINN::PINN()'],['../classPINN.html#ac9feed4fc5d379756275dd32e745e4fd',1,'PINN::PINN()'],['../classPINN.html#ae99cbeddd96aea3a0b90883835da6a1a',1,'PINN::PINN(const PINN &amp;)=delete']]],
+  ['pinn_5fnetwork_2ehpp_98',['pinn_network.hpp',['../pinn__network_8hpp.html',1,'']]],
+  ['pinn_5fnetwork_5fbatch_2ehpp_99',['pinn_network_batch.hpp',['../pinn__network__batch_8hpp.html',1,'']]],
+  ['prime_100',['prime',['../structLinear.html#a15ed4fb4ec877c4bbb46e1232b115b3d',1,'Linear::prime()'],['../structReLU.html#adee7b8429313f902abf4ee30533bf19d',1,'ReLU::prime()'],['../structSigmoid.html#ace885d52f81eec82476833a79791f097',1,'Sigmoid::prime()'],['../structTanh.html#af11bfb0238f329509b22b7cacb68414b',1,'Tanh::prime()']]],
+  ['process_5flayers_101',['process_layers',['../classPINN.html#afcc695610f59beaf01fb191b857f24b8',1,'PINN']]]
 ];

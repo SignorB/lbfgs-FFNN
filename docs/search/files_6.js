@@ -1,5 +1,7 @@
 var searchData=
 [
-  ['pinn_5fnetwork_2ehpp_164',['pinn_network.hpp',['../pinn__network_8hpp.html',1,'']]],
-  ['pinn_5fnetwork_5fbatch_2ehpp_165',['pinn_network_batch.hpp',['../pinn__network__batch_8hpp.html',1,'']]]
+  ['layer_2ecuh_176',['layer.cuh',['../layer_8cuh.html',1,'']]],
+  ['layer_2ehpp_177',['layer.hpp',['../layer_8hpp.html',1,'']]],
+  ['lbfgs_2ecuh_178',['lbfgs.cuh',['../lbfgs_8cuh.html',1,'']]],
+  ['lbfgs_2ehpp_179',['lbfgs.hpp',['../lbfgs_8hpp.html',1,'']]]
 ];

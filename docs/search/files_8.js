@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['s_5fgd_2ehpp_167',['s_gd.hpp',['../s__gd_8hpp.html',1,'']]],
-  ['s_5flbfgs_2ehpp_168',['s_lbfgs.hpp',['../s__lbfgs_8hpp.html',1,'']]],
-  ['s_5flbfgs_5fparallel_2ehpp_169',['s_lbfgs_parallel.hpp',['../s__lbfgs__parallel_8hpp.html',1,'']]]
+  ['network_2ecuh_182',['network.cuh',['../network_8cuh.html',1,'']]],
+  ['network_2ehpp_183',['network.hpp',['../network_8hpp.html',1,'']]],
+  ['newton_2ehpp_184',['newton.hpp',['../newton_8hpp.html',1,'']]]
 ];
