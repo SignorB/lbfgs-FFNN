@@ -1,11 +1,6 @@
-
-
 FROM docker.io/nvidia/cuda:12.6.3-devel-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-
-
-
 
 RUN apt-get update && apt-get install -y \
     wget \
@@ -23,9 +18,7 @@ RUN apt-get update && apt-get install -y \
     libclang-15-dev \
     && rm -rf /var/lib/apt/lists/*
 
-
 RUN pip3 install --no-cache-dir lit
-
 
 WORKDIR /usr/src
 RUN git clone https://github.com/EnzymeAD/Enzyme.git
@@ -35,17 +28,12 @@ WORKDIR /usr/src/Enzyme/enzyme
 RUN mkdir build
 WORKDIR /usr/src/Enzyme/enzyme/build
 
-
 RUN cmake -G Ninja .. \
     -DCMAKE_BUILD_TYPE=Release \
     -DLLVM_DIR=/usr/lib/llvm-15/lib/cmake/llvm \
     -DLLVM_EXTERNAL_LIT=/usr/local/bin/lit
 
-
-
 RUN ninja
-
-
 
 RUN ninja check-enzyme
 

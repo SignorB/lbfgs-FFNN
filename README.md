@@ -135,6 +135,30 @@ The directory structure is as follows:
 
 We use **CMake** for build configuration.
 
+## EnzymeAD on Newer NVIDIA GPUs (Docker Workflow)
+
+To test EnzymeAD on an NVIDIA GTX5070 GPU, we had to work around driver and CUDA version constraints. CUDA 12.8 is required by the host driver, while Enzyme supports up to CUDA 11.5. For this reason we created a Docker image located at `environment/Dockerfile`. We compile inside the container targeting `sm_80`, and then run the binary on the newer GPU using CUDA forward compatibility.
+
+### Build the Docker image
+
+```bash
+docker build -t cuda11-enzyme -f environment/Dockerfile .
+```
+
+### Run the Docker container
+
+```bash
+docker run -it --rm --privileged --user root -v /:/host:Z cuda11-enzyme /bin/bash
+```
+
+### Compile the PINN binary inside the container
+
+```bash
+clang++-15 -std=c++17 /host/home/gio/amsc/tests/cuda/pinn_burgers.cu \
+  -fplugin=/usr/src/Enzyme/enzyme/build/Enzyme/ClangEnzyme-15.so \
+  -O3 --cuda-gpu-arch=sm_80 -lcudart -L/usr/local/cuda-11.5/lib64 -lcublas
+```
+
 ### Prerequisites
 *   C++ compiler with C++17 support (e.g., GCC, Clang)
 *   CMake (>= 3.10)
