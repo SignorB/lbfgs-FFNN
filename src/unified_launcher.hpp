@@ -87,26 +87,29 @@ public:
     
     optimizer.optimize(handle_, net_wrapper_, dataset_, d_train_x_, d_train_y_, config);
 
-    evaluate();
+    evaluate(dataset_.train_x, dataset_.train_y, d_train_x_, "Training Results");
   }
 
   void test() {
-      evaluate();
+      evaluate(dataset_.test_x, dataset_.test_y, d_test_x_, "Test Results");
   }
 
-  void evaluate() {
-      int batch_size = static_cast<int>(dataset_.test_x.cols());
-      int out_dim = static_cast<int>(dataset_.test_y.rows());
+private:
+  void evaluate(const Eigen::MatrixXd& x, const Eigen::MatrixXd& y,
+                cuda_mlp::DeviceBuffer<cuda_mlp::CudaScalar>& d_x,
+                const char* label) {
+      int batch_size = static_cast<int>(x.cols());
+      int out_dim = static_cast<int>(y.rows());
 
       auto &net = net_wrapper_.getInternal();
-      net.forward_only(d_test_x_.data(), batch_size);
+      net.forward_only(d_x.data(), batch_size);
 
       std::vector<cuda_mlp::CudaScalar> host_output(batch_size * out_dim);
       net.copy_output_to_host(host_output.data(), host_output.size());
 
       double mse = 0;
       long correct = 0;
-      const double *target_ptr = dataset_.test_y.data();
+      const double *target_ptr = y.data();
 
       for (int i = 0; i < batch_size; ++i) {
         int pred_idx = 0;
@@ -129,10 +132,9 @@ public:
 
       mse /= (double)(batch_size * out_dim);
       double acc = ((double)correct / batch_size) * 100.0;
-      std::cout << "Test Results: MSE=" << mse << ", Accuracy=" << acc << "%" << std::endl;
+      std::cout << label << ": MSE=" << mse << ", Accuracy=" << acc << "%" << std::endl;
   }
 
-private:
   cuda_mlp::CublasHandle handle_;
   NetworkWrapper<CudaBackend> net_wrapper_;
   UnifiedDataset dataset_;

@@ -43,7 +43,7 @@ int main() {
 
     // Strategy Pattern: Instantiate Optimizer
     std::cout << "Instantiating Optimizer Strategy (SGD)..." << std::endl;
-    UnifiedSGD<Backend> optimizer; 
+    UnifiedLBFGS<Backend> optimizer; 
     
     std::cout << "Starting Training..." << std::endl;
     launcher.train(optimizer, config);
