@@ -175,7 +175,6 @@ public:
         auto minimizer = std::make_shared<StochasticGradientDescent<Vec, Mat>>();
         minimizer->setMaxIterations(config.max_iters);
         minimizer->setStepSize(config.learning_rate);
-        minimizer->setLogFile("sgd_log.csv"); // Optional logging
         IterationRecorder<CpuBackend> recorder;
         recorder.init(config.max_iters);
         minimizer->setRecorder(&recorder);

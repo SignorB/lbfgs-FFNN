@@ -101,7 +101,7 @@ public:
         const CudaScalar *batch_target = target + (start_idx * output_dim_);
 
         CudaScalar batch_loss_avg = loss_grad(params, grad.data(), batch_input, batch_target, current_batch_size);
-        CudaScalar effective_lr = current_lr / static_cast<CudaScalar>(current_batch_size);
+        CudaScalar effective_lr = current_lr;
 
         if (momentum_ > 0.0f) {
           // v = momentum * v - lr * grad; params += v

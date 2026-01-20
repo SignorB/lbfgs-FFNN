@@ -5,7 +5,6 @@
 #include <Eigen/Eigen>
 #include <chrono>
 #include <random>
-#include <fstream>
 #include <cmath>
 
 /**
@@ -42,7 +41,6 @@ public:
     _batch_g = g;
   }
 
-  void setLogFile(const std::string &path) { _logfile = path; }
   void setStepSize(double s) { this->step_size = s; }
 
   // Full-batch solve (fallback) — reuse simple GD behavior
@@ -84,16 +82,6 @@ public:
     V w = init_w;
     int dim = static_cast<int>(w.size());
 
-    // prepare logfile (truncate each run)
-    std::ofstream logfile;
-    if (!_logfile.empty()) {
-      logfile.open(_logfile, std::ofstream::out | std::ofstream::trunc);
-      if (logfile.is_open()) {
-        logfile << "passes,loss,log10_loss,iteration" << std::endl;
-        logfile.flush();
-      }
-    }
-
     double passes = 0.0;
     std::mt19937 rng(123);
 
@@ -133,13 +121,7 @@ public:
       for (int i = 0; i < N; ++i) {
         loss += _sf(w, _inputs.col(i), _targets.col(i));
       }
-//      mean_loss /= static_cast<double>(N);
-
-      if (logfile.is_open()) {
-        double logv = (loss > 0.0) ? std::log10(loss) : -INFINITY;
-        logfile << passes << "," << loss << "," << logv << "," << (_iters + 1) << std::endl;
-        logfile.flush();
-      }
+      loss /= static_cast<double>(N);
 
       if (verbose && ((_iters % print_every) == 0)) {
         std::cout << "Epoch " << (_iters + 1) << " loss=" << loss << " passes=" << passes << std::endl;
@@ -158,7 +140,6 @@ public:
       _iters++;
     }
 
-    if (logfile.is_open()) logfile.close();
     return w;
   }
 
@@ -167,7 +148,6 @@ private:
   M _targets; // Changed from std::vector<V> to Matrix
   S_VecFun _sf;
   BatchGradFun _batch_g; // MODIFICATO: Tipo batch
-  std::string _logfile;
 };
 
 // Implementation of minibatch sampler (same logic as SLBFGS)

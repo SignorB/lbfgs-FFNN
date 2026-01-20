@@ -4,7 +4,7 @@
 #include <iostream>
 #include <omp.h>
 
-using Backend = CpuBackend;
+using Backend = CudaBackend;
 
 int main() {
   checkParallelism();
@@ -15,8 +15,8 @@ int main() {
   launcher.addLayer<128, 10, Linear>();
   launcher.buildNetwork();
 
-  int train_size = 5000;
-  int test_size = 1000;
+  int train_size = 60000;
+  int test_size = 10000;
 
   std::cout << "Loading Training Data..." << std::endl;
   Eigen::MatrixXd train_x = MNISTLoader::loadImages("../tests/mnist/train-images.idx3-ubyte", train_size);
@@ -36,8 +36,8 @@ int main() {
 
   {
     UnifiedConfig config;
-    config.name = "MNIST_Unified_GD";
-    config.max_iters = 300;
+    config.name = "MNIST_GD";
+    config.max_iters = 1000;
     config.tolerance = 1e-4;
     config.learning_rate = 0.01;
     config.momentum = 0.9;
@@ -51,10 +51,10 @@ int main() {
 
   {
     UnifiedConfig config;
-    config.name = "MNIST_Unified_LBFGS";
-    config.max_iters = 100;
+    config.name = "MNIST_LBFGS";
+    config.max_iters = 1000;
     config.tolerance = 1e-4;
-    config.m_param = 10;
+    config.m_param = 20;
     config.log_interval = 2;
 
     std::cout << "Running LBFGS..." << std::endl;
@@ -65,19 +65,36 @@ int main() {
 
   {
     UnifiedConfig config;
-    config.name = "MNIST_Unified_SLBFGS";
-    config.max_iters = 100;
+    config.name = "MNIST_SGD";
+    config.max_iters = 1000;
     config.tolerance = 1e-4;
-    config.learning_rate = 0.02;
-    config.momentum = 0.8;
+    config.learning_rate = 0.03;
     config.batch_size = 256;
     config.log_interval = 5;
 
     std::cout << "Running SGD..." << std::endl;
-    UnifiedSLBFGS<Backend> optimizer;
+    UnifiedSGD<Backend> optimizer;
     launcher.train(optimizer, config);
     launcher.test();
   }
+
+  // {
+  //   UnifiedConfig config;
+  //   config.name = "MNIST_SLBFGS";
+  //   config.max_iters = 100;
+  //   config.tolerance = 1e-4;
+  //   config.learning_rate = 0.02;
+  //   config.batch_size = 256;
+  //   config.m_param = 10;
+  //   config.L_param = 10;
+  //   config.b_H_param = 128;
+  //   config.log_interval = 5;
+
+  //   std::cout << "Running SLBFGS..." << std::endl;
+  //   UnifiedSLBFGS<Backend> optimizer;
+  //   launcher.train(optimizer, config);
+  //   launcher.test();
+  // }
 
   return 0;
 }
