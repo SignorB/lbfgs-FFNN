@@ -1,0 +1,5 @@
+<map id="MinimizerBase::solve" name="MinimizerBase::solve">
+<area shape="rect" id="node1" title="Pure virtual solve function to be implemented by derived classes." alt="" coords="216,35,379,61"/>
+<area shape="rect" id="node2" href="$classMinimizerBase.html#a153c472a659e6265c6e83514dcd55ed2" title="Solves the optimization problem using automatic differentiation." alt="" coords="5,5,168,32"/>
+<area shape="rect" id="node3" href="$classMinimizerBase.html#aa45de6421656c2ba143075784b9cb4a7" title="Solves the optimization problem using Enzyme for automatic differentiation." alt="" coords="5,57,168,98"/>
+</map>

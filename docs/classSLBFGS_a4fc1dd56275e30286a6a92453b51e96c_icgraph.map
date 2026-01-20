@@ -1,0 +1,5 @@
+<map id="SLBFGS::stochastic_solve" name="SLBFGS::stochastic_solve">
+<area shape="rect" id="node1" title="Perform the S&#45;LBFGS optimization on the objective function f." alt="" coords="271,5,417,47"/>
+<area shape="rect" id="node2" href="$classSLBFGS.html#a1542935b123719176014b80efded49fb" title="Pure virtual solve function to be implemented by derived classes." alt="" coords="108,13,223,39"/>
+<area shape="rect" id="node3" href="$trial__stochastic_8cpp.html#a840291bc02cba5474a4cb46a9b9566fe" title=" " alt="" coords="5,13,60,39"/>
+</map>

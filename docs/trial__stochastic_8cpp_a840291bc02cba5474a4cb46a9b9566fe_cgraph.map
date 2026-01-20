@@ -1,0 +1,13 @@
+<map id="main" name="main">
+<area shape="rect" id="node1" title=" " alt="" coords="5,157,60,184"/>
+<area shape="rect" id="node2" href="$trial__stochastic_8cpp.html#a87e41891cba6a84121b226486a6afb60" title=" " alt="" coords="173,5,280,32"/>
+<area shape="rect" id="node3" href="$trial__stochastic_8cpp.html#a707a5dfb6c0ef8b91a6c6cb760ba7ab9" title=" " alt="" coords="175,56,279,83"/>
+<area shape="rect" id="node4" href="$classSLBFGS.html#ad308a5db18a12a5bee4a215ff2eb7d96" title=" " alt="" coords="161,107,292,133"/>
+<area shape="rect" id="node5" href="$classMinimizerBase.html#a6e85b5c64d0c073ec8c2c7d0011d07aa" title="Sets the maximum number of iterations." alt="" coords="108,157,345,184"/>
+<area shape="rect" id="node6" href="$classMinimizerBase.html#a5f0784418ca42c383ce1f471b7569e99" title="Sets the stochastic parameters for optimization." alt="" coords="119,209,334,250"/>
+<area shape="rect" id="node7" href="$classMinimizerBase.html#a059d61e7f4932542f807789982ac1bdf" title="Sets the tolerance for the stopping criterion." alt="" coords="122,275,331,301"/>
+<area shape="rect" id="node8" href="$classSLBFGS.html#a1542935b123719176014b80efded49fb" title="Pure virtual solve function to be implemented by derived classes." alt="" coords="169,325,284,352"/>
+<area shape="rect" id="node9" href="$classSLBFGS.html#a4fc1dd56275e30286a6a92453b51e96c" title="Perform the S&#45;LBFGS optimization on the objective function f." alt="" coords="393,318,540,359"/>
+<area shape="rect" id="node10" href="$s__lbfgs_8hpp.html#a6ccb7b6fecb8d73bf5c2f6541e223217" title="Compute the product of the Hessian of f at weights with vector v using finite differences." alt="" coords="588,300,747,327"/>
+<area shape="rect" id="node11" href="$s__lbfgs_8hpp.html#ae63fc9df888369272b2091f7ccada432" title="two&#45;loop recursion to compute H*v where H is the inverse Hessian approximation in L&#45;BFGS it should be..." alt="" coords="607,351,727,377"/>
+</map>

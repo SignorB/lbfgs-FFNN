@@ -1,0 +1,5 @@
+<map id="LBFGS::solve" name="LBFGS::solve">
+<area shape="rect" id="node1" title="Perform the L&#45;BFGS optimization on the objective function f." alt="" coords="5,35,112,61"/>
+<area shape="rect" id="node2" href="$classLBFGS.html#ae1515b407c1958e2cb51fe92d702ee7c" title="Compute the L&#45;BFGS search direction using the two&#45;loop recursion." alt="" coords="160,5,353,32"/>
+<area shape="rect" id="node3" href="$classMinimizerBase.html#aa0769b6918189dfe63a223fdb38dfc0a" title="Performs line search using Wolfe conditions." alt="" coords="181,57,332,98"/>
+</map>

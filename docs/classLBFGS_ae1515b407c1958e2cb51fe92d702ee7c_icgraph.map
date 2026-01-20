@@ -1,0 +1,4 @@
+<map id="LBFGS::compute_direction" name="LBFGS::compute_direction">
+<area shape="rect" id="node1" title="Compute the L&#45;BFGS search direction using the two&#45;loop recursion." alt="" coords="160,5,353,32"/>
+<area shape="rect" id="node2" href="$classLBFGS.html#acc3c0cb169d832d01fe8f9ef512e8d70" title="Perform the L&#45;BFGS optimization on the objective function f." alt="" coords="5,5,112,32"/>
+</map>

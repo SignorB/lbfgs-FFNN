@@ -1,0 +1,4 @@
+<map id="BFGS::solve" name="BFGS::solve">
+<area shape="rect" id="node1" title="Run the BFGS optimization method." alt="" coords="5,13,105,39"/>
+<area shape="rect" id="node2" href="$classMinimizerBase.html#aa0769b6918189dfe63a223fdb38dfc0a" title="Performs line search using Wolfe conditions." alt="" coords="153,5,304,47"/>
+</map>

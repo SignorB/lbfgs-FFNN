@@ -1,0 +1,4 @@
+<map id="GradientDescent::solve" name="GradientDescent::solve">
+<area shape="rect" id="node1" title="Pure virtual solve function to be implemented by derived classes." alt="" coords="5,13,180,39"/>
+<area shape="rect" id="node2" href="$classMinimizerBase.html#aa0769b6918189dfe63a223fdb38dfc0a" title="Performs line search using Wolfe conditions." alt="" coords="228,5,379,47"/>
+</map>

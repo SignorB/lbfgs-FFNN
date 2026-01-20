@@ -1,0 +1,6 @@
+<map id="lbfgs_two_loop" name="lbfgs_two_loop">
+<area shape="rect" id="node1" title="two&#45;loop recursion to compute H*v where H is the inverse Hessian approximation in L&#45;BFGS it should be..." alt="" coords="465,13,585,39"/>
+<area shape="rect" id="node2" href="$classSLBFGS.html#a4fc1dd56275e30286a6a92453b51e96c" title="Perform the S&#45;LBFGS optimization on the objective function f." alt="" coords="271,5,417,47"/>
+<area shape="rect" id="node3" href="$classSLBFGS.html#a1542935b123719176014b80efded49fb" title="Pure virtual solve function to be implemented by derived classes." alt="" coords="108,13,223,39"/>
+<area shape="rect" id="node4" href="$trial__stochastic_8cpp.html#a840291bc02cba5474a4cb46a9b9566fe" title=" " alt="" coords="5,13,60,39"/>
+</map>

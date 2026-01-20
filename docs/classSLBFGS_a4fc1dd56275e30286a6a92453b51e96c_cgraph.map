@@ -1,0 +1,5 @@
+<map id="SLBFGS::stochastic_solve" name="SLBFGS::stochastic_solve">
+<area shape="rect" id="node1" title="Perform the S&#45;LBFGS optimization on the objective function f." alt="" coords="5,23,152,65"/>
+<area shape="rect" id="node2" href="$s__lbfgs_8hpp.html#a6ccb7b6fecb8d73bf5c2f6541e223217" title="Compute the product of the Hessian of f at weights with vector v using finite differences." alt="" coords="200,5,359,32"/>
+<area shape="rect" id="node3" href="$s__lbfgs_8hpp.html#ae63fc9df888369272b2091f7ccada432" title="two&#45;loop recursion to compute H*v where H is the inverse Hessian approximation in L&#45;BFGS it should be..." alt="" coords="219,56,339,83"/>
+</map>

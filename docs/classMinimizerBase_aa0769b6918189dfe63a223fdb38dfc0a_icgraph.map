@@ -1,0 +1,6 @@
+<map id="MinimizerBase::line_search" name="MinimizerBase::line_search">
+<area shape="rect" id="node1" title="Performs line search using Wolfe conditions." alt="" coords="228,49,379,90"/>
+<area shape="rect" id="node2" href="$classBFGS.html#a037d353ea150ef231720075d5decfd44" title="Run the BFGS optimization method." alt="" coords="43,5,143,32"/>
+<area shape="rect" id="node3" href="$classGradientDescent.html#abe059759db9680e1ddda671bda85475e" title="Pure virtual solve function to be implemented by derived classes." alt="" coords="5,56,180,83"/>
+<area shape="rect" id="node4" href="$classLBFGS.html#acc3c0cb169d832d01fe8f9ef512e8d70" title="Perform the L&#45;BFGS optimization on the objective function f." alt="" coords="39,107,146,133"/>
+</map>

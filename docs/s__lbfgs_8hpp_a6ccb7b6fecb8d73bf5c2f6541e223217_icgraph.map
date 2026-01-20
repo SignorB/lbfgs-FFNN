@@ -1,0 +1,6 @@
+<map id="finite_difference_hvp" name="finite_difference_hvp">
+<area shape="rect" id="node1" title="Compute the product of the Hessian of f at weights with vector v using finite differences." alt="" coords="465,13,624,39"/>
+<area shape="rect" id="node2" href="$classSLBFGS.html#a4fc1dd56275e30286a6a92453b51e96c" title="Perform the S&#45;LBFGS optimization on the objective function f." alt="" coords="271,5,417,47"/>
+<area shape="rect" id="node3" href="$classSLBFGS.html#a1542935b123719176014b80efded49fb" title="Pure virtual solve function to be implemented by derived classes." alt="" coords="108,13,223,39"/>
+<area shape="rect" id="node4" href="$trial__stochastic_8cpp.html#a840291bc02cba5474a4cb46a9b9566fe" title=" " alt="" coords="5,13,60,39"/>
+</map>
