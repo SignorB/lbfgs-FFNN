@@ -5,6 +5,8 @@
 #include <autodiff/reverse/var.hpp>
 #include <autodiff/reverse/var/eigen.hpp>
 
+namespace cpu_mlp {
+
 struct Linear {
   static inline double apply(double x) { return x; }
   static inline double prime(double /*x*/) { return 1.0; }
@@ -108,3 +110,5 @@ public:
     return Activation::scale * std::sqrt(1.0 / (double)In);
   }
 };
+
+} // namespace cpu_mlp

@@ -1,4 +1,4 @@
-#include "../src/minimizer/minimizer_base.hpp"
+#include "../src/minimizer/full_batch_minimizer.hpp"
 #include <chrono>
 #include <functional>
 #include <iostream>
@@ -23,7 +23,7 @@ namespace Tests {
 template <typename V, typename M>
 class TestSuite {
   /// Shared pointer to a generic minimizer implementation.
-  using minimizerPtr = std::shared_ptr<MinimizerBase<V, M>>;
+  using minimizerPtr = std::shared_ptr<cpu_mlp::FullBatchMinimizer<V, M>>;
   /// Type of a test function: takes a minimizer instance by reference.
   using testFunction = std::function<void(minimizerPtr &)>;
 
