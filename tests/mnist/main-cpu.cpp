@@ -3,6 +3,7 @@
 #include "mnist_loader.hpp"
 #include <iostream>
 #include <omp.h>
+#include <chrono>
 
 using Backend = CpuBackend;
 
@@ -32,7 +33,8 @@ int main() {
   dataset.test_y = test_y;
 
   launcher.setData(dataset);
-
+  auto start_time = std::chrono::high_resolution_clock::now();
+  
   // {
   //   UnifiedConfig config;
   //   config.name = "MNIST_Unified_GD";
@@ -66,7 +68,7 @@ int main() {
   {
     UnifiedConfig config;
     config.name = "MNIST_SLBFGS";
-    config.max_iters = 1000;
+    config.max_iters = 10;
     config.tolerance = 1e-4;
     config.learning_rate = 0.02;
     config.batch_size = 256;
@@ -77,7 +79,11 @@ int main() {
 
     std::cout << "Running SLBFGS..." << std::endl;
     UnifiedSLBFGS<Backend> optimizer;
+
+
+    
     launcher.train(optimizer, config);
+    
     launcher.test();
   }
 
@@ -95,6 +101,12 @@ int main() {
   //   launcher.test();
   // }
 
-
+  auto end_time = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> elapsed = end_time - start_time;
+  
+  std::cout << "[BENCHMARK] Threads: " << omp_get_max_threads() 
+            << " | Time: " << elapsed.count() << " s" << std::endl;
+  
+  
   return 0;
 }
