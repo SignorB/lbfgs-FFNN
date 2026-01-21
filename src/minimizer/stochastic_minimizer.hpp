@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../common.hpp"
+#include "../iteration_recorder.hpp"
 #include <Eigen/Eigen>
 #include <vector>
 #include <random>
@@ -33,12 +34,18 @@ public:
      * @param tol Tolerance value.
      */
     void setTolerance(double tol) { _tol = tol; }
+    /**
+     * @brief Attach a recorder for loss/grad history.
+     * @param recorder Recorder instance (may be null).
+     */
+    void setRecorder(::IterationRecorder<CpuBackend> *recorder) { recorder_ = recorder; }
 
 protected:
     unsigned int _max_iters = 1000;
     unsigned int _iters = 0;
     double _tol = 1e-4;
     double step_size = 0.01;
+    ::IterationRecorder<CpuBackend> *recorder_ = nullptr; ///< Optional recorder for diagnostics
 };
 
 } // namespace cpu_mlp

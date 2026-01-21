@@ -10,8 +10,7 @@ namespace cpu_mlp {
 /**
  * @brief Newton minimizer (full Newton) for unconstrained optimization.
  */
-template <typename V, typename M>
-class Newton : public FullBatchMinimizer<V, M> {
+template <typename V, typename M> class Newton : public FullBatchMinimizer<V, M> {
   using Base = FullBatchMinimizer<V, M>;
   using Base::_iters;
   using Base::_max_iters;
@@ -29,8 +28,7 @@ public:
     for (_iters = 0; _iters < _max_iters; ++_iters) {
       V g = Gradient(x);
       double gnorm = g.norm();
-      if (gnorm <= _tol)
-        break;
+      if (gnorm <= _tol) break;
 
       M H = _hessFun(x);
       check(H.rows() == H.cols(), "Hessian must be square");

@@ -5,6 +5,8 @@
 #include "ring_buffer.hpp"
 #include <autodiff/forward/dual.hpp>
 #include <Eigen/Eigen>
+#include <autodiff/forward/dual.hpp>
+#include <chrono>
 
 namespace cpu_mlp {
 
@@ -36,12 +38,17 @@ public:
     V p = -grad;          
     V x_new = x;          
 
+    const bool timing = (this->recorder_ != nullptr);
+    if (this->recorder_) this->recorder_->reset();
+    auto start_time = std::chrono::steady_clock::now();
+
     for (_iters = 0; _iters < _max_iters; ++_iters) {
       if (grad.norm() < _tol) {
         break;
       }
 
       p = compute_direction(grad, s_list, y_list, rho_list);
+
 
       double alpha_wolfe;
       // Heuristic for the first step
@@ -68,8 +75,18 @@ public:
 
 
       }
-      
+
       grad = grad_new;
+
+      if (this->recorder_) {
+        double loss = f(x);
+        double elapsed_ms = 0.0;
+        if (timing) {
+          auto now = std::chrono::steady_clock::now();
+          elapsed_ms = std::chrono::duration<double, std::milli>(now - start_time).count();
+        }
+        this->recorder_->record(_iters, loss, grad.norm(), elapsed_ms);
+      }
     }
 
     return x;
@@ -78,6 +95,7 @@ public:
   /**
    * @brief Two-loop recursion to compute search direction.
    */
+
   V compute_direction(const V &grad,
                       const RingBuffer<V> &s_list,
                       const RingBuffer<V> &y_list,
@@ -96,6 +114,7 @@ public:
       alpha_list[i] = rho_list[i] * s_list[i].dot(q);
       q -= alpha_list[i] * y_list[i];
     }
+
 
     // Scaling
     double gamma = s_list.back().dot(y_list.back()) /

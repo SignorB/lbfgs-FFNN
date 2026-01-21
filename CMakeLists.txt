@@ -67,6 +67,7 @@ if(ENABLE_CUDA)
         endif()
 
         set_source_files_properties(tests/mnist/main.cpp PROPERTIES LANGUAGE CUDA)
+        set_source_files_properties(tests/fashion/main.cpp PROPERTIES LANGUAGE CUDA)
 
         add_executable(test_mnist_cuda tests/cuda/mnist.cu)
         add_executable(test_fashion_cuda tests/cuda/fashion.cu)
@@ -83,10 +84,13 @@ endif()
 
 # Unified MNIST Test (Works on CPU too)
 add_executable(test_mnist tests/mnist/main.cpp)
+add_executable(test_fashion tests/fashion/main.cpp)
 target_link_libraries(test_mnist PRIVATE autodiff::autodiff Eigen3::Eigen)
+target_link_libraries(test_fashion PRIVATE autodiff::autodiff Eigen3::Eigen)
 
 if(ENABLE_CUDA)
     target_link_libraries(test_mnist PRIVATE CUDA::cublas CUDA::cudart)
+    target_link_libraries(test_fashion PRIVATE CUDA::cublas CUDA::cudart)
 endif()
 
 find_package(OpenMP)
@@ -99,13 +103,20 @@ if(OpenMP_CXX_FOUND)
         target_link_libraries(test_mnist PRIVATE OpenMP::OpenMP_CXX)
         target_compile_definitions(test_mnist PRIVATE EIGEN_USE_OPENMP)
     endif()
+    if(TARGET test_fashion)
+        target_link_libraries(test_fashion PRIVATE OpenMP::OpenMP_CXX)
+        target_compile_definitions(test_fashion PRIVATE EIGEN_USE_OPENMP)
+    endif()
 
     target_compile_definitions(test_mnist PRIVATE EIGEN_USE_OPENMP)
+    target_compile_definitions(test_fashion PRIVATE EIGEN_USE_OPENMP)
     
     if(ENABLE_CUDA AND TARGET test_mnist)
         target_compile_options(test_mnist PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler -fopenmp>)
     endif()
+    if(ENABLE_CUDA AND TARGET test_fashion)
+        target_compile_options(test_fashion PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler -fopenmp>)
+    endif()
 else()
     message(WARNING "OpenMP not found. Eigen will run in single-thread mode.")
 endif()
-

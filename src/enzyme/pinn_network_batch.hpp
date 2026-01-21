@@ -1,111 +1,113 @@
 #pragma once
-#include <cmath>
 #include <algorithm>
-#include <tuple>
-#include <vector>
-#include <random>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <random>
 #include <stdexcept>
+#include <tuple>
+#include <vector>
 
 using Real = double;
 
 #ifndef ENZYME_INLINE
-#define ENZYME_INLINE __attribute__((always_inline)) inline
+  #define ENZYME_INLINE __attribute__((always_inline)) inline
 #endif
 
 // Helper per allocazione allineata portabile
-inline Real* aligned_alloc_real(size_t count) {
-    void* ptr = nullptr;
-    if (posix_memalign(&ptr, 64, count * sizeof(Real)) != 0) return nullptr;
-    return static_cast<Real*>(ptr);
+inline Real *aligned_alloc_real(size_t count) {
+  void *ptr = nullptr;
+  if (posix_memalign(&ptr, 64, count * sizeof(Real)) != 0) return nullptr;
+  return static_cast<Real *>(ptr);
 }
 
-inline void aligned_free_real(Real* ptr) {
-    free(ptr);
-}
+inline void aligned_free_real(Real *ptr) { free(ptr); }
 
-struct Tanh { static ENZYME_INLINE Real apply(Real x) { return std::tanh(x); } };
-struct Linear { static ENZYME_INLINE Real apply(Real x) { return x; } };
-
-template <int In, int Out, typename Activation>
-struct Dense {
-    static constexpr int InSize = In;
-    static constexpr int OutSize = Out;
-    static constexpr int NumParams = (In * Out) + Out;
-
-    // Aggiunto __restrict__ per ottimizzazione compiler
-    static ENZYME_INLINE void forward_batch(const Real* __restrict__ p, const Real* __restrict__ in, Real* __restrict__ out, int N) {
-        const Real* W = p;
-        const Real* b = p + (In * Out);
-
-        for (int k = 0; k < N; ++k) {
-            const Real* in_k = in + k * In;
-            Real* out_k = out + k * Out;
-
-            for (int i = 0; i < Out; ++i) {
-                Real z = 0.0;
-                // Il compilatore ora sa che W e in_k sono allineati a 32/64 byte
-                for (int j = 0; j < In; ++j) {
-                    z += W[i * In + j] * in_k[j];
-                }
-                z += b[i];
-                out_k[i] = Activation::apply(z);
-            }
-        }
-    }
+struct Tanh {
+  static ENZYME_INLINE Real apply(Real x) { return std::tanh(x); }
+};
+struct Linear {
+  static ENZYME_INLINE Real apply(Real x) { return x; }
 };
 
-template <typename... Layers>
-class PINN {
+template <int In, int Out, typename Activation> struct Dense {
+  static constexpr int InSize = In;
+  static constexpr int OutSize = Out;
+  static constexpr int NumParams = (In * Out) + Out;
+
+  // Aggiunto __restrict__ per ottimizzazione compiler
+  static ENZYME_INLINE void forward_batch(
+      const Real *__restrict__ p, const Real *__restrict__ in, Real *__restrict__ out, int N) {
+    const Real *W = p;
+    const Real *b = p + (In * Out);
+
+    for (int k = 0; k < N; ++k) {
+      const Real *in_k = in + k * In;
+      Real *out_k = out + k * Out;
+
+      for (int i = 0; i < Out; ++i) {
+        Real z = 0.0;
+        // Il compilatore ora sa che W e in_k sono allineati a 32/64 byte
+        for (int j = 0; j < In; ++j) {
+          z += W[i * In + j] * in_k[j];
+        }
+        z += b[i];
+        out_k[i] = Activation::apply(z);
+      }
+    }
+  }
+};
+
+template <typename... Layers> class PINN {
 public:
-    using Architecture = std::tuple<Layers...>;
-    static constexpr int TotalParams = (0 + ... + Layers::NumParams);
-    static constexpr int MaxLayerSize = std::max({Layers::InSize..., Layers::OutSize...});
+  using Architecture = std::tuple<Layers...>;
+  static constexpr int TotalParams = (0 + ... + Layers::NumParams);
+  static constexpr int MaxLayerSize = std::max({Layers::InSize..., Layers::OutSize...});
 
-    // Sostituiamo std::vector con puntatore raw gestito manualmente
-    Real* params;
+  // Sostituiamo std::vector con puntatore raw gestito manualmente
+  Real *params;
 
-    PINN() {
-        // Allocazione allineata a 64 byte
-        // Aggiungiamo padding extra (64 elementi) per sicurezza contro letture fuori bordo speculative
-        params = aligned_alloc_real(TotalParams + 64);
-        if (!params) throw std::runtime_error("Failed to allocate aligned memory for PINN params");
-        init_params();
-    }
+  PINN() {
+    // Allocazione allineata a 64 byte
+    // Aggiungiamo padding extra (64 elementi) per sicurezza contro letture fuori bordo speculative
+    params = aligned_alloc_real(TotalParams + 64);
+    if (!params) throw std::runtime_error("Failed to allocate aligned memory for PINN params");
+    init_params();
+  }
 
-    ~PINN() {
-        if (params) aligned_free_real(params);
-    }
-    
-    // Copy constructor/assignment disabilitati per semplicità (per evitare double free)
-    PINN(const PINN&) = delete;
-    PINN& operator=(const PINN&) = delete;
+  ~PINN() {
+    if (params) aligned_free_real(params);
+  }
 
-    void init_params() {
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_real_distribution<Real> dist(-0.1, 0.1);
-        for(int i=0; i<TotalParams; ++i) params[i] = dist(gen);
-    }
+  // Copy constructor/assignment disabilitati per semplicità (per evitare double free)
+  PINN(const PINN &) = delete;
+  PINN &operator=(const PINN &) = delete;
 
-    static ENZYME_INLINE void forward_scratch(const Real* in, Real* out, const Real* p, int N, Real* scratch) {
-        using L1 = std::tuple_element_t<0, Architecture>;
-        using L2 = std::tuple_element_t<1, Architecture>;
-        using L3 = std::tuple_element_t<2, Architecture>;
-        using L4 = std::tuple_element_t<3, Architecture>;
+  void init_params() {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<Real> dist(-0.1, 0.1);
+    for (int i = 0; i < TotalParams; ++i)
+      params[i] = dist(gen);
+  }
 
-        Real* bufA = scratch;
-        Real* bufB = scratch + (N * MaxLayerSize);
+  static ENZYME_INLINE void forward_scratch(const Real *in, Real *out, const Real *p, int N, Real *scratch) {
+    using L1 = std::tuple_element_t<0, Architecture>;
+    using L2 = std::tuple_element_t<1, Architecture>;
+    using L3 = std::tuple_element_t<2, Architecture>;
+    using L4 = std::tuple_element_t<3, Architecture>;
 
-        const Real* p1 = p;
-        const Real* p2 = p1 + L1::NumParams;
-        const Real* p3 = p2 + L2::NumParams;
-        const Real* p4 = p3 + L3::NumParams;
+    Real *bufA = scratch;
+    Real *bufB = scratch + (N * MaxLayerSize);
 
-        L1::forward_batch(p1, in, bufA, N);   
-        L2::forward_batch(p2, bufA, bufB, N); 
-        L3::forward_batch(p3, bufB, bufA, N); 
-        L4::forward_batch(p4, bufA, out, N); 
-    }
+    const Real *p1 = p;
+    const Real *p2 = p1 + L1::NumParams;
+    const Real *p3 = p2 + L2::NumParams;
+    const Real *p4 = p3 + L3::NumParams;
+
+    L1::forward_batch(p1, in, bufA, N);
+    L2::forward_batch(p2, bufA, bufB, N);
+    L3::forward_batch(p3, bufB, bufA, N);
+    L4::forward_batch(p4, bufA, out, N);
+  }
 };

@@ -2,10 +2,10 @@
 #include "layer.hpp"
 #include <Eigen/Core>
 #include <algorithm>
+#include <iostream>
 #include <memory>
 #include <random>
 #include <vector>
-#include <iostream>
 
 namespace cpu_mlp {
 
@@ -23,19 +23,15 @@ private:
 public:
   Network() = default;
 
-  size_t getSize() const {
-    return params_size;
-  }
+  size_t getSize() const { return params_size; }
 
-  template <int In, int Out, typename Activation = Linear>
-  void addLayer() {
+  template <int In, int Out, typename Activation = Linear> void addLayer() {
     layers.push_back(std::make_unique<DenseLayer<In, Out, Activation>>());
     params_size += layers.back()->getParamsSize();
   }
 
   void bindParams() {
-    if (layers.empty())
-      return;
+    if (layers.empty()) return;
 
     params.resize(params_size);
     grads.resize(params_size);
@@ -63,11 +59,11 @@ public:
 
   const Eigen::MatrixXd &forward(const Eigen::MatrixXd &input) {
     if (activations.empty() || activations[0].cols() != input.cols()) {
-        activations.resize(layers.size() + 1);
+      activations.resize(layers.size() + 1);
     }
-    
+
     activations[0] = input;
-    
+
     for (size_t i = 0; i < layers.size(); ++i) {
       layers[i]->forward(activations[i], activations[i + 1]);
     }
@@ -77,21 +73,17 @@ public:
 
   void backward(const Eigen::MatrixXd &loss_grad) {
     if (deltas.size() != layers.size() + 1) {
-        deltas.resize(layers.size() + 1);
+      deltas.resize(layers.size() + 1);
     }
 
     deltas.back() = loss_grad;
 
     for (int i = layers.size() - 1; i >= 0; --i) {
-      layers[i]->backward(
-          deltas[i + 1],
-          (i > 0) ? &deltas[i] : nullptr);
+      layers[i]->backward(deltas[i + 1], (i > 0) ? &deltas[i] : nullptr);
     }
   }
 
-  void zeroGrads() {
-    std::fill(grads.begin(), grads.end(), 0.0);
-  }
+  void zeroGrads() { std::fill(grads.begin(), grads.end(), 0.0); }
 
   double *getParamsData() { return params.data(); }
   double *getGradsData() { return grads.data(); }
@@ -100,9 +92,7 @@ public:
     std::copy(new_params.data(), new_params.data() + params_size, params.begin());
   }
 
-  void getGrads(Eigen::VectorXd &out_grads) {
-    std::copy(grads.begin(), grads.end(), out_grads.data());
-  }
+  void getGrads(Eigen::VectorXd &out_grads) { std::copy(grads.begin(), grads.end(), out_grads.data()); }
 
   void test(const Eigen::MatrixXd &inputs, const Eigen::MatrixXd &targets, std::string label = "Test Results") {
     const auto &output = this->forward(inputs);
@@ -110,12 +100,12 @@ public:
     long total = inputs.cols();
 
     for (long i = 0; i < total; ++i) {
-        Eigen::Index pred_idx, true_idx;
-        output.col(i).maxCoeff(&pred_idx);
-        targets.col(i).maxCoeff(&true_idx);
-        if (pred_idx == true_idx) {
-            correct++;
-        }
+      Eigen::Index pred_idx, true_idx;
+      output.col(i).maxCoeff(&pred_idx);
+      targets.col(i).maxCoeff(&true_idx);
+      if (pred_idx == true_idx) {
+        correct++;
+      }
     }
 
     double accuracy = (double)correct / total * 100.0;
@@ -131,4 +121,3 @@ public:
 };
 
 } // namespace cpu_mlp
-

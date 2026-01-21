@@ -4,6 +4,7 @@
 #include "../../src/cuda/lbfgs.cuh"
 #include "../../src/cuda/network.cuh"
 #include "../../src/cuda/sgd.cuh"
+#include "../../src/iteration_recorder.hpp"
 #include <Eigen/Core>
 #include <algorithm>
 #include <chrono>
@@ -126,7 +127,7 @@ public:
       std::string log_filename = config.name + "_history.csv";
       std::ofstream log_file(log_filename);
 
-      IterationRecorder recorder;
+      ::IterationRecorder<::CudaBackend> recorder;
       recorder.init(config.max_iters);
       solver->setRecorder(&recorder);
 
