@@ -1,86 +1,75 @@
 #pragma once
 
 #include "../common.hpp"
-#include "minimizer_base.hpp"
+#include "stochastic_minimizer.hpp"
 #include <Eigen/Eigen>
 #include <chrono>
 #include <random>
 #include <cmath>
 
+namespace cpu_mlp {
+
 /**
- * @brief Simple Stochastic Gradient Descent minimizer.
- *
- * Provides a stochastic solver that operates on minibatches supplied via
- * `setData(...)`. Also implements a full-batch `solve(...)` fallback so
- * the class satisfies the `MinimizerBase` interface.
+ * @brief Stochastic Gradient Descent (SGD) minimizer.
+ * @details Operates on minibatches provided by callbacks.
  */
 template <typename V, typename M>
-class StochasticGradientDescent : public MinimizerBase<V, M> {
-  using Base = MinimizerBase<V, M>;
+class StochasticGradientDescent : public StochasticMinimizer<V, M> {
+  // Public inheritance needed!
+  using Base = StochasticMinimizer<V, M>;
   using Base::_iters;
   using Base::_max_iters;
   using Base::_tol;
+  using Base::step_size;
 
 public:
+  using Base::setMaxIterations;
+  using Base::setTolerance;
+  using Base::setStepSize;
+
   using S_VecFun = std::function<double(const V &, const V &, const V &)>;
-  // MODIFICATO: La funzione gradiente ora riceve il vettore dei pesi, gli INDICI del batch e il vettore gradiente in output
   using BatchGradFun = std::function<void(const V &, const std::vector<size_t>&, V &)>;
 
   StochasticGradientDescent() = default;
 
-  // same minibatch sampler signature as in SLBFGS
+  /**
+   * @brief Helper to sample minibatch indices without replacement (Fisher-Yates shuffle subset).
+   */
   static std::vector<size_t> sample_minibatch_indices(const size_t N, size_t batch_size, std::mt19937 &rng);
 
-  // MODIFICATO: accetta Matrici per inputs e targets
+  /**
+   * @brief Configure data and callbacks for the solver.
+   */
   void setData(const M &inputs, const M &targets, const S_VecFun &f,
                const BatchGradFun &g) {
-    // We assume columns are samples
     _inputs = inputs;
     _targets = targets;
     _sf = f;
     _batch_g = g;
   }
 
-  void setStepSize(double s) { this->step_size = s; }
+  /**
+   * @brief Execute Stochastic Solve.
+   * @param init_w Initial weights.
+   * @param m Number of minibatches per epoch.
+   * @param b Batch size.
+   * @param step Step size/learning rate.
+   * @param verbose Print progress.
+   * @param print_every Print interval.
+   * @return Optimized weights.
+   */
+  V stochastic_solve(const V& init_w, int m, int b, double step, bool verbose = false,
 
-  // Full-batch solve (fallback) — reuse simple GD behavior
-  V solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient) override {
-    const bool timing = (this->recorder_ != nullptr);
-    if (this->recorder_) this->recorder_->reset();
-    auto start_time = std::chrono::steady_clock::now();
-
-    for (_iters = 0; _iters < _max_iters; ++_iters) {
-      V g = Gradient(x);
-      if (g.norm() < _tol)
-        break;
-      x = x - this->step_size * g;
-
-      if (this->recorder_) {
-        double loss = f(x);
-        double elapsed_ms = 0.0;
-        if (timing) {
-          auto now = std::chrono::steady_clock::now();
-          elapsed_ms =
-              std::chrono::duration<double, std::milli>(now - start_time).count();
-        }
-        this->recorder_->record(_iters, loss, g.norm(), elapsed_ms);
-      }
-    }
-    return x;
-  }
-
-  // Stochastic solver using minibatches previously set with setData
-  V stochastic_solve(const V& init_w, int m /*minibatches per epoch*/, int b /*batch size*/, double step, bool verbose = false,
                      int print_every = 50) {
     if (_inputs.cols() == 0 || _targets.cols() == 0) {
       throw std::runtime_error("No data set for StochasticGradientDescent::stochastic_solve");
     }
 
-    int N = static_cast<int>(_inputs.cols()); // Assume col-major data
-    // int dim = static_cast<int>(_inputs[0].size()); // INCORRECT INFERENCE
+    int N = static_cast<int>(_inputs.cols()); 
 
     V w = init_w;
     int dim = static_cast<int>(w.size());
+    step_size = step;
 
     double passes = 0.0;
     std::mt19937 rng(123);
@@ -92,36 +81,26 @@ public:
     while (_iters < _max_iters) {
       // one epoch of m minibatches
       double last_grad_norm = 0.0;
+
       for (int t = 0; t < m; ++t) {
-        // sample minibatch indices using shared helper
         auto minibatch_indices = sample_minibatch_indices(N, b, rng);
 
         V grad_est = V::Zero(dim);
         
-        // MODIFICATO: Chiamata unica batch-wise
-        // The callback logic handles extracting data from the pre-set Matrix using indices
         _batch_g(w, minibatch_indices, grad_est);
         last_grad_norm = grad_est.norm();
 
-        // update
-        w = w - step * grad_est;
+        w = w - step_size * grad_est;
 
         passes += static_cast<double>(b) / static_cast<double>(N);
       }
 
-      // compute mean loss over dataset and log
-      // Note: Computing full loss every epoch is expensive!
-      // For performance, we might want to skip this or estimate it.
-      // But keeping legacy behavior for now.
       double loss = 0.0;
-      // NOTE: Using _sf here which is single-item based is slow.
-      // Ideally we would have a BatchLossFun too.
-      // But since user asked not to touch comments and minimize changes, we keep this if possible.
-      // However, iterating cols of Matrix is easy.
       for (int i = 0; i < N; ++i) {
         loss += _sf(w, _inputs.col(i), _targets.col(i));
       }
       loss /= static_cast<double>(N);
+
 
       if (verbose && ((_iters % print_every) == 0)) {
         std::cout << "Epoch " << (_iters + 1) << " loss=" << loss << " passes=" << passes << std::endl;
@@ -144,13 +123,13 @@ public:
   }
 
 private:
-  M _inputs;  // Changed from std::vector<V> to Matrix
-  M _targets; // Changed from std::vector<V> to Matrix
+  M _inputs;  
+  M _targets; 
   S_VecFun _sf;
   BatchGradFun _batch_g; // MODIFICATO: Tipo batch
+
 };
 
-// Implementation of minibatch sampler (same logic as SLBFGS)
 template <typename V, typename M>
 std::vector<size_t> StochasticGradientDescent<V,M>::sample_minibatch_indices(const size_t N, size_t batch_size, std::mt19937 &rng){
     if (N == 0 || batch_size == 0) {
@@ -164,11 +143,9 @@ std::vector<size_t> StochasticGradientDescent<V,M>::sample_minibatch_indices(con
     }
 
     if (batch_size >= N) {
-        std::cerr << "Warning: batch_size >= dataset size. Returning full dataset indices." << std::endl;
         return idx;
     }
 
-    // Fisher-Yates partial shuffle
     for (size_t i = 0; i < batch_size; ++i) {
       std::uniform_int_distribution<size_t> dist(i, N -1);
       size_t j = dist(rng);
@@ -177,3 +154,5 @@ std::vector<size_t> StochasticGradientDescent<V,M>::sample_minibatch_indices(con
     idx.resize(batch_size);
     return idx;
 }
+
+} // namespace cpu_mlp

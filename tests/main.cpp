@@ -6,10 +6,11 @@
 #include "../src/minimizer/lbfgs.hpp"
 #include "../src/minimizer/newton.hpp"
 
+
 using Vec = Eigen::VectorXd;
 using Mat = Eigen::MatrixXd;
 
-using minimizerPtr = std::shared_ptr<MinimizerBase<Vec, Mat>>;
+using minimizerPtr = std::shared_ptr<cpu_mlp::FullBatchMinimizer<Vec, Mat>>;
 
 void test_rastrigin(minimizerPtr &solver) {
 
@@ -257,15 +258,15 @@ void test_ackley(minimizerPtr &solver) {
 }
 
 int main() {
-  minimizerPtr bfgs = std::make_shared<BFGS<Vec, Mat>>();
-  minimizerPtr lbfgs = std::make_shared<LBFGS<Vec, Mat>>();
-  minimizerPtr newton = std::make_shared<Newton<Vec, Mat>>();
+  minimizerPtr bfgs = std::make_shared<cpu_mlp::BFGS<Vec, Mat>>();
+  minimizerPtr lbfgs = std::make_shared<cpu_mlp::LBFGS<Vec, Mat>>();
+  minimizerPtr newton = std::make_shared<cpu_mlp::Newton<Vec, Mat>>();
 
   using GMRES_Solver = Eigen::GMRES<Mat>;
   GMRES_Solver solver = GMRES_Solver();
   solver.setTolerance(1.e-12);
   solver.setMaxIterations(10000);
-  auto bfgs_gmres = std::make_shared<BFGS<Vec, Mat, GMRES_Solver>>((solver));
+  auto bfgs_gmres = std::make_shared<cpu_mlp::BFGS<Vec, Mat, GMRES_Solver>>((solver));
 
   auto suite = Tests::TestSuite<Vec, Mat>();
 

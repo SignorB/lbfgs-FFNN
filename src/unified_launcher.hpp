@@ -67,7 +67,7 @@ public:
             
             std::vector<cuda_mlp::CudaScalar> temp(mat.size());
             const double* ptr = mat.data();
-            for(size_t i=0; i<mat.size(); ++i) temp[i] = static_cast<cuda_mlp::CudaScalar>(ptr[i]);
+            for(size_t i=0; i<static_cast<size_t>(mat.size()); ++i) temp[i] = static_cast<cuda_mlp::CudaScalar>(ptr[i]);
             dev_buf.copy_from_host(temp.data(), temp.size());
         }
     };

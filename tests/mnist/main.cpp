@@ -4,20 +4,19 @@
 #include <iostream>
 #include <omp.h>
 
-using Backend = CudaBackend;
+using Backend = CpuBackend; 
 
 int main() {
   checkParallelism();
   UnifiedLauncher<Backend> launcher;
 
   std::cout << "Building Network..." << std::endl;
-  launcher.addLayer<784, 128, Tanh>();
-  launcher.addLayer<128, 10, Linear>();
-  launcher.buildNetwork();
+  launcher.addLayer<784, 128, cpu_mlp::Tanh>();
+  launcher.addLayer<128, 10, cpu_mlp::Linear>();
+
 
   int train_size = 60000;
   int test_size = 10000;
-
   std::cout << "Loading Training Data..." << std::endl;
   Eigen::MatrixXd train_x = MNISTLoader::loadImages("../tests/mnist/train-images.idx3-ubyte", train_size);
   Eigen::MatrixXd train_y = MNISTLoader::loadLabels("../tests/mnist/train-labels.idx1-ubyte", train_size);
@@ -36,8 +35,8 @@ int main() {
 
   {
     UnifiedConfig config;
-    config.name = "MNIST_GD";
-    config.max_iters = 1000;
+    config.name = "MNIST_Unified_GD";
+    config.max_iters = 30;
     config.tolerance = 1e-4;
     config.learning_rate = 0.01;
     config.momentum = 0.9;
