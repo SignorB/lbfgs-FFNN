@@ -5,6 +5,7 @@
  */
 
 #include "layer.hpp"
+#include "seed.hpp"
 #include <Eigen/Core>
 #include <algorithm>
 #include <iostream>
@@ -41,15 +42,14 @@ public:
   }
 
   /// @brief Bind and initialize parameters and gradient buffers.
-  void bindParams() {
+  void bindParams(unsigned int seed = kDefaultSeed) {
     if (layers.empty()) return;
 
     // Allocate contiguous storage for parameters and gradients.
     params.resize(params_size);
     grads.resize(params_size);
 
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    std::mt19937 gen(seed);
 
     activations.clear();
     deltas.clear();

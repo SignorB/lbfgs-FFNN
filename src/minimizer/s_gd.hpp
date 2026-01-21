@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../common.hpp"
+#include "../seed.hpp"
 #include "stochastic_minimizer.hpp"
 #include <Eigen/Eigen>
 #include <chrono>
@@ -78,7 +79,7 @@ public:
     step_size = step;
 
     double passes = 0.0;
-    std::mt19937 rng(123);
+    std::mt19937 rng(kDefaultSeed);
 
     const bool timing = (this->recorder_ != nullptr);
     if (this->recorder_) this->recorder_->reset();

@@ -4,6 +4,7 @@
 #include "device_buffer.cuh"
 #include "kernels.cuh"
 #include "layer.cuh"
+#include "../seed.hpp"
 #include <cmath>
 #include <random>
 #include <utility>
@@ -32,7 +33,7 @@ public:
    * @brief Allocate parameter/gradient buffers and initialize weights
    * @param seed RNG seed for weight initialization
    */
-  void bindParams(unsigned int seed = 2341) {
+  void bindParams(unsigned int seed = kDefaultSeed) {
     params_.resize(params_size_);
     grads_.resize(params_size_);
 

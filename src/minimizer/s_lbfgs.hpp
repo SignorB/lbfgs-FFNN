@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../common.hpp"
+#include "../seed.hpp"
 #include "ring_buffer.hpp"
 #include "stochastic_minimizer.hpp"
 
@@ -174,8 +175,7 @@ V SLBFGS<V, M>::stochastic_solve(V weights,
   RingBuffer<V> y_list(M_param > 0 ? M_param : 0);
   RingBuffer<double> rho_list(M_param > 0 ? M_param : 0);
 
-  int seed = 56;
-  std::mt19937 rng(seed);
+  std::mt19937 rng(kDefaultSeed);
 
   int dim_weights = weights.size();
   V wt = weights;

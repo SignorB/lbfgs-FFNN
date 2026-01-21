@@ -29,6 +29,8 @@ struct UnifiedConfig {
   double tolerance = 1e-4;
   double learning_rate = 0.01;
   double momentum = 0.0;
+  double lr_decay = 0.0; 
+  int lr_decay_rate = 1;
 
   // Stochastic params
   int batch_size = 128;
@@ -562,6 +564,7 @@ public:
           solver->setMomentum(c.momentum);
           solver->setBatchSize(c.batch_size);
           solver->setMaxIterations(c.max_iters);
+          solver->setLearningRateDecay(c.lr_decay, c.lr_decay_rate);
           solver->setDimensions(static_cast<int>(d.train_x.rows()), static_cast<int>(d.train_y.rows()));
           return solver;
         },
