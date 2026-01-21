@@ -2,6 +2,7 @@
 
 #include "iteration_recorder.hpp"
 #include "network_wrapper.hpp"
+#include "seed.hpp"
 #include <Eigen/Core>
 #include <algorithm>
 #include <chrono>
@@ -40,6 +41,10 @@ struct UnifiedConfig {
 
   // Logging
   int log_interval = 10;
+
+  // Parameter initialization
+  bool reset_params = true;
+  unsigned int seed = kDefaultSeed;
 };
 
 /**

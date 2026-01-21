@@ -33,6 +33,9 @@ public:
   /// @brief Run training for the selected optimizer.
   void train(UnifiedOptimizer<CpuBackend> &optimizer, const UnifiedConfig &config) {
     std::cout << ">>> Running CPU Experiment: " << config.name << std::endl;
+    if (config.reset_params) {
+      net_wrapper_.bindParams(config.seed);
+    }
     // Train on the configured dataset.
     optimizer.optimize(net_wrapper_, dataset_, config);
     // Evaluate on training data.
@@ -95,6 +98,9 @@ public:
   /// @brief Run training for the selected optimizer.
   void train(UnifiedOptimizer<CudaBackend> &optimizer, const UnifiedConfig &config) {
     std::cout << ">>> Running CUDA Experiment: " << config.name << std::endl;
+    if (config.reset_params) {
+      net_wrapper_.bindParams(config.seed);
+    }
     // Train on device buffers.
     optimizer.optimize(handle_, net_wrapper_, dataset_, d_train_x_, d_train_y_, config);
     // Evaluate on training data.

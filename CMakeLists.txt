@@ -64,11 +64,14 @@ if(ENABLE_CUDA)
 
         set_source_files_properties(tests/mnist/main-gpu.cpp PROPERTIES LANGUAGE CUDA)
         set_source_files_properties(tests/fashion-mnist/main-gpu.cpp PROPERTIES LANGUAGE CUDA)
+        set_source_files_properties(tests/fashion-mnist/main_gpu_deep.cpp PROPERTIES LANGUAGE CUDA)
 
         add_executable(test_mnist_gpu tests/mnist/main-gpu.cpp)
         add_executable(test_fashion_gpu tests/fashion-mnist/main-gpu.cpp)
+        add_executable(test_fashion_gpu_deep tests/fashion-mnist/main_gpu_deep.cpp)
         target_link_libraries(test_mnist_gpu PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
         target_link_libraries(test_fashion_gpu PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
+        target_link_libraries(test_fashion_gpu_deep PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
 
         message(STATUS "CUDA compiler found. Enabled cuda tests.")
     else()

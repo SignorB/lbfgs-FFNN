@@ -11,7 +11,7 @@ int main() {
   UnifiedLauncher<Backend> launcher;
 
   std::cout << "Building Network..." << std::endl;
-  launcher.addLayer<784, 128, cpu_mlp::Tanh>();
+  launcher.addLayer<784, 128, cpu_mlp::ReLU>();
   launcher.addLayer<128, 10, cpu_mlp::Linear>();
   launcher.buildNetwork();
 
@@ -35,10 +35,10 @@ int main() {
 
   {
     UnifiedConfig config;
-    config.name = "MNIST_Unified_GD";
+    config.name = "MNIST_GD";
     config.max_iters = 1000;
-    config.tolerance = 1e-4;
-    config.learning_rate = 0.01;
+    config.tolerance = 1e-3;
+    config.learning_rate = 0.02;
     config.momentum = 0.9;
     config.log_interval = 1;
 
@@ -50,10 +50,27 @@ int main() {
 
   {
     UnifiedConfig config;
-    config.name = "MNIST_LBFGS";
+    config.name = "MNIST_SGD";
     config.max_iters = 1000;
-    config.tolerance = 1e-4;
-    config.m_param = 20;
+    config.tolerance = 1e-3;
+    config.learning_rate = 0.01;
+    config.batch_size = 256;
+    config.log_interval = 5;
+    config.lr_decay = 0.80;
+    config.lr_decay_rate = 40;
+
+    std::cout << "Running SGD..." << std::endl;
+    UnifiedSGD<Backend> optimizer;
+    launcher.train(optimizer, config);
+    launcher.test();
+  }
+
+  {
+    UnifiedConfig config;
+    config.name = "MNIST_LBFGS_m10";
+    config.max_iters = 1000;
+    config.tolerance = 1e-3;
+    config.m_param = 10;
     config.log_interval = 1;
 
     std::cout << "Running LBFGS..." << std::endl;
@@ -64,15 +81,14 @@ int main() {
 
   {
     UnifiedConfig config;
-    config.name = "MNIST_SGD";
+    config.name = "MNIST_LBFGS_m100";
     config.max_iters = 1000;
-    config.tolerance = 1e-4;
-    config.learning_rate = 0.03;
-    config.batch_size = 256;
-    config.log_interval = 5;
+    config.tolerance = 1e-3;
+    config.m_param = 100;
+    config.log_interval = 1;
 
-    std::cout << "Running SGD..." << std::endl;
-    UnifiedSGD<Backend> optimizer;
+    std::cout << "Running LBFGS..." << std::endl;
+    UnifiedLBFGS<Backend> optimizer;
     launcher.train(optimizer, config);
     launcher.test();
   }

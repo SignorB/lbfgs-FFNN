@@ -11,8 +11,9 @@ int main() {
   UnifiedLauncher<Backend> launcher;
 
   std::cout << "Building Network..." << std::endl;
-  launcher.addLayer<784, 128, cpu_mlp::Tanh>();
+  launcher.addLayer<784, 128, cpu_mlp::ReLU>();
   launcher.addLayer<128, 10, cpu_mlp::Linear>();
+  launcher.buildNetwork();
 
   int train_size = 60000;
   int test_size = 10000;
@@ -35,16 +36,10 @@ int main() {
 
   launcher.setData(dataset);
 
-  auto reset_params = [&launcher]() {
-    // Reinitialize with the fixed default seed so each run starts identically.
-    launcher.buildNetwork();
-  };
-
   {
-    reset_params();
     UnifiedConfig config;
-    config.name = "FASHION_MNIST_Unified_GD";
-    config.max_iters = 1000;
+    config.name = "FASHION_MNIST_GD";
+    config.max_iters = 500;
     config.tolerance = 1e-2;
     config.learning_rate = 0.02;
     config.momentum = 0.9;
@@ -57,12 +52,28 @@ int main() {
   }
 
   {
-    reset_params();
     UnifiedConfig config;
-    config.name = "FASHION_LBFGS_m20";
+    config.name = "FASHION_MNIST_SGD";
     config.max_iters = 1000;
     config.tolerance = 1e-2;
-    config.m_param = 20;
+    config.learning_rate = 0.01;
+    config.batch_size = 128;
+    config.log_interval = 5;
+    config.lr_decay = 0.70;
+    config.lr_decay_rate = 40;
+
+    std::cout << "Running SGD..." << std::endl;
+    UnifiedSGD<Backend> optimizer;
+    launcher.train(optimizer, config);
+    launcher.test();
+  }
+
+  {
+    UnifiedConfig config;
+    config.name = "FASHION_LBFGS_m100";
+    config.max_iters = 1000;
+    config.tolerance = 1e-2;
+    config.m_param = 100;
     config.log_interval = 1;
 
     std::cout << "Running LBFGS..." << std::endl;
@@ -72,7 +83,6 @@ int main() {
   }
 
   {
-    reset_params();
     UnifiedConfig config;
     config.name = "FASHION_MNIST_LBFGS_m10";
     config.max_iters = 1000;
@@ -82,24 +92,6 @@ int main() {
 
     std::cout << "Running LBFGS..." << std::endl;
     UnifiedLBFGS<Backend> optimizer;
-    launcher.train(optimizer, config);
-    launcher.test();
-  }
-
-  {
-    reset_params();
-    UnifiedConfig config;
-    config.name = "FASHION_MNIST_SGD";
-    config.max_iters = 1000;
-    config.tolerance = 1e-2;
-    config.learning_rate = 0.01;
-    config.batch_size = 256;
-    config.log_interval = 5;
-    config.lr_decay = 0.50;
-    config.lr_decay_rate = 40;
-
-    std::cout << "Running SGD..." << std::endl;
-    UnifiedSGD<Backend> optimizer;
     launcher.train(optimizer, config);
     launcher.test();
   }

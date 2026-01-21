@@ -66,6 +66,7 @@ public:
   template <int In, int Out, typename Activation> void addLayer() { network_.addLayer<In, Out, Activation>(); }
 
   void bindParams() { network_.bindParams(); }
+  void bindParams(unsigned int seed) { network_.bindParams(seed); }
 
   /// @brief Access the underlying CPU network.
   InternalNetwork &getInternal() { return network_; }
@@ -94,6 +95,7 @@ public:
   }
 
   void bindParams() { network_.bindParams(); }
+  void bindParams(unsigned int seed) { network_.bindParams(seed); }
 
   /// @brief Access the underlying CUDA network.
   InternalNetwork &getInternal() { return network_; }

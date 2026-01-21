@@ -4,18 +4,20 @@
 #include <iostream>
 #include <omp.h>
 
-using Backend = CpuBackend;
+using Backend = CudaBackend;
 
 int main() {
   checkParallelism();
   UnifiedLauncher<Backend> launcher;
 
   std::cout << "Building Network..." << std::endl;
-  launcher.addLayer<784, 128, cpu_mlp::ReLU>();
-  launcher.addLayer<128, 10, cpu_mlp::Linear>();
+  launcher.addLayer<784, 256, cpu_mlp::ReLU>();
+  launcher.addLayer<256, 128, cpu_mlp::ReLU>();
+  launcher.addLayer<128, 64, cpu_mlp::ReLU>();
+  launcher.addLayer<64, 10, cpu_mlp::Linear>();
   launcher.buildNetwork();
 
-  int train_size = 5000;
+  int train_size = 60000;
   int test_size = 10000;
 
   std::cout << "Loading Fashion-MNIST..." << std::endl;
@@ -38,12 +40,12 @@ int main() {
 
   {
     UnifiedConfig config;
-    config.name = "FASHION_MNIST_GD";
+    config.name = "FASHION_MNIST_Unified_GD";
     config.max_iters = 500;
-    config.tolerance = 5e-4;
-    config.learning_rate = 0.01;
+    config.tolerance = 1e-2;
+    config.learning_rate = 0.02;
     config.momentum = 0.9;
-    config.log_interval = 3;
+    config.log_interval = 1;
 
     std::cout << "Running GD..." << std::endl;
     UnifiedGD<Backend> optimizer;
@@ -54,11 +56,13 @@ int main() {
   {
     UnifiedConfig config;
     config.name = "FASHION_MNIST_SGD";
-    config.max_iters = 500;
-    config.tolerance = 5e-3;
+    config.max_iters = 1000;
+    config.tolerance = 1e-2;
     config.learning_rate = 0.01;
-    config.batch_size = 256;
-    config.log_interval = 10;
+    config.batch_size = 128;
+    config.log_interval = 5;
+    config.lr_decay = 0.70;
+    config.lr_decay_rate = 40;
 
     std::cout << "Running SGD..." << std::endl;
     UnifiedSGD<Backend> optimizer;
@@ -68,27 +72,10 @@ int main() {
 
   {
     UnifiedConfig config;
-    config.name = "FASHION_MNIST_SLBFGS";
-    config.max_iters = 500;
-    config.tolerance = 5e-3;
-    config.learning_rate = 0.01;
-    config.batch_size = 256;
-    config.m_param = 10;
-    config.L_param = 10;
-    config.b_H_param = 128;
-    config.log_interval = 10;
-
-    std::cout << "Running SLBFGS..." << std::endl;
-    UnifiedSLBFGS<Backend> optimizer;
-    launcher.train(optimizer, config);
-    launcher.test();
-  }
-  {
-    UnifiedConfig config;
-    config.name = "FASHION_LBFGS_m20";
-    config.max_iters = 500;
-    config.tolerance = 5e-3;
-    config.m_param = 20;
+    config.name = "FASHION_LBFGS_m100";
+    config.max_iters = 1000;
+    config.tolerance = 1e-2;
+    config.m_param = 100;
     config.log_interval = 1;
 
     std::cout << "Running LBFGS..." << std::endl;
@@ -96,11 +83,12 @@ int main() {
     launcher.train(optimizer, config);
     launcher.test();
   }
+
   {
     UnifiedConfig config;
-    config.name = "FASHION_LBFGS_m10";
-    config.max_iters = 500;
-    config.tolerance = 5e-3;
+    config.name = "FASHION_MNIST_LBFGS_m10";
+    config.max_iters = 1000;
+    config.tolerance = 1e-2;
     config.m_param = 10;
     config.log_interval = 1;
 

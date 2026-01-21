@@ -86,6 +86,12 @@ public:
     }
 
     int iterations_done = 0;
+    if (recorder_) {
+      CudaScalar full_loss_avg = loss_grad(params, grad.data(), input, target, total_samples);
+      CudaScalar grad_norm = device_nrm2(handle_, grad.data(), n);
+      recorder_->record(iterations_done, full_loss_avg, grad_norm, CudaScalar{0});
+      iterations_done++;
+    }
     for (int iter = 0; iter < max_iters_; ++iter) {
       if (timing) cuda_check(cudaEventRecord(iter_start), "cudaEventRecord iter_start");
       if (decay_step_ > 0 && iter > 0 && iter % decay_step_ == 0) {
