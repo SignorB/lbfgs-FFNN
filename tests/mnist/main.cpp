@@ -4,7 +4,7 @@
 #include <iostream>
 #include <omp.h>
 
-using Backend = CpuBackend;
+using Backend = CudaBackend;
 
 int main() {
   checkParallelism();
@@ -15,7 +15,7 @@ int main() {
   launcher.addLayer<128, 10, cpu_mlp::Linear>();
   launcher.buildNetwork();
 
-  int train_size = 5000;
+  int train_size = 60000;
   int test_size = 10000;
   std::cout << "Loading Training Data..." << std::endl;
   Eigen::MatrixXd train_x = MNISTLoader::loadImages("../tests/mnist/train-images.idx3-ubyte", train_size);
@@ -36,11 +36,11 @@ int main() {
   {
     UnifiedConfig config;
     config.name = "MNIST_Unified_GD";
-    config.max_iters = 30;
+    config.max_iters = 1000;
     config.tolerance = 1e-4;
     config.learning_rate = 0.01;
     config.momentum = 0.9;
-    config.log_interval = 5;
+    config.log_interval = 1;
 
     std::cout << "Running GD..." << std::endl;
     UnifiedGD<Backend> optimizer;
@@ -54,7 +54,7 @@ int main() {
     config.max_iters = 1000;
     config.tolerance = 1e-4;
     config.m_param = 20;
-    config.log_interval = 2;
+    config.log_interval = 1;
 
     std::cout << "Running LBFGS..." << std::endl;
     UnifiedLBFGS<Backend> optimizer;
@@ -80,14 +80,14 @@ int main() {
   // {
   //   UnifiedConfig config;
   //   config.name = "MNIST_SLBFGS";
-  //   config.max_iters = 100;
+  //   config.max_iters = 200;
   //   config.tolerance = 1e-4;
   //   config.learning_rate = 0.02;
   //   config.batch_size = 256;
   //   config.m_param = 10;
   //   config.L_param = 10;
   //   config.b_H_param = 128;
-  //   config.log_interval = 5;
+  //   config.log_interval = 1;
 
   //   std::cout << "Running SLBFGS..." << std::endl;
   //   UnifiedSLBFGS<Backend> optimizer;

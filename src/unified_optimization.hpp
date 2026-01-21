@@ -77,8 +77,7 @@ inline void write_cpu_history_csv(
   }
 }
 
-inline void run_full_batch_cpu(
-    NetworkWrapper<CpuBackend> &net,
+inline void run_full_batch_cpu(NetworkWrapper<CpuBackend> &net,
     const UnifiedDataset &data,
     cpu_mlp::FullBatchMinimizer<Eigen::VectorXd, Eigen::MatrixXd> &minimizer) {
   using Vec = Eigen::VectorXd;
@@ -90,8 +89,7 @@ inline void run_full_batch_cpu(
   Vec weights(params_size);
   std::copy(network.getParamsData(), network.getParamsData() + params_size, weights.data());
 
-  const double inv_samples =
-      (data.train_x.cols() > 0) ? (1.0 / static_cast<double>(data.train_x.cols())) : 0.0;
+  const double inv_samples = (data.train_x.cols() > 0) ? (1.0 / static_cast<double>(data.train_x.cols())) : 0.0;
 
   VecFun<Vec, double> f = [&](Vec w) -> double {
     network.setParams(w);
@@ -372,18 +370,8 @@ public:
 
     minimizer->setData(batch_f, batch_g);
 
-    Vec final_weights = minimizer->stochastic_solve(weights,
-        batch_f,
-        batch_g,
-        m,
-        config.m_param,
-        config.L_param,
-        config.batch_size,
-        b_H,
-        config.learning_rate,
-        N,
-        true, // verbose
-        config.log_interval);
+    Vec final_weights = minimizer->stochastic_solve(
+        weights, batch_f, batch_g, m, config.m_param, config.L_param, config.batch_size, b_H, config.learning_rate, N);
     write_cpu_history_csv(cpu_log_filename(config), recorder, config.log_interval);
   }
 };

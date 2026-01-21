@@ -45,14 +45,15 @@ public:
     if (this->recorder_) this->recorder_->reset();
     auto start_time = std::chrono::steady_clock::now();
 
+    V g = Gradient(x);
     for (_iters = 0; _iters < _max_iters; ++_iters) {
-      V g = Gradient(x);
       if (g.norm() < _tol) break;
 
       double alpha = step_size;
       if (use_line_search) alpha = this->line_search(x, -g, f, Gradient);
 
       x = x - alpha * g;
+      g = Gradient(x);
 
       if (this->recorder_) {
         double loss = f(x);

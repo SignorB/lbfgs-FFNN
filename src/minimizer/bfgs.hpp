@@ -2,27 +2,21 @@
 
 #include "../common.hpp"
 #include "full_batch_minimizer.hpp"
+#include <Eigen/Eigen>
 #include <autodiff/reverse/var.hpp>
 #include <autodiff/reverse/var/eigen.hpp>
-#include <Eigen/Eigen>
-
 
 namespace cpu_mlp {
 
-template <typename M>
-constexpr bool isSparse = std::is_base_of_v<Eigen::SparseMatrixBase<M>, M>;
+template <typename M> constexpr bool isSparse = std::is_base_of_v<Eigen::SparseMatrixBase<M>, M>;
 
 template <typename M>
-using DefaultSolverT = typename std::conditional<
-    isSparse<M>,
-    Eigen::ConjugateGradient<M>,
-    Eigen::LDLT<M>>::type;
+using DefaultSolverT = typename std::conditional<isSparse<M>, Eigen::ConjugateGradient<M>, Eigen::LDLT<M>>::type;
 
 /**
  * @brief BFGS (Broyden–Fletcher–Goldfarb–Shanno) minimizer.
  */
-template <typename V, typename M, typename Solver = DefaultSolverT<M>>
-class BFGS : public FullBatchMinimizer<V, M> {
+template <typename V, typename M, typename Solver = DefaultSolverT<M>> class BFGS : public FullBatchMinimizer<V, M> {
   using Base = FullBatchMinimizer<V, M>;
   using Base::_iters;
   using Base::_max_iters;
@@ -30,37 +24,30 @@ class BFGS : public FullBatchMinimizer<V, M> {
 
 protected:
   static constexpr bool UseDefaultSolver = std::is_same_v<Solver, DefaultSolverT<M>>;
-  using SolverT = typename std::conditional<
-      UseDefaultSolver,
-      Solver,
-      Solver &>::type;
+  using SolverT = typename std::conditional<UseDefaultSolver, Solver, Solver &>::type;
 
 private:
   SolverT _solver;
-  M _B; 
+  M _B;
 
 public:
   BFGS()
-  requires(UseDefaultSolver) {
-    _solver = DefaultSolverT<M>();
-  }
+  requires(UseDefaultSolver) { _solver = DefaultSolverT<M>(); }
 
   BFGS(Solver &solver)
-  requires(!UseDefaultSolver) : _solver(solver) {
-  }
+  requires(!UseDefaultSolver) : _solver(solver) {}
 
   void setInitialHessian(const M &b) { _B = b; }
 
   V solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient) override {
-    
-    // Initialize B if empty/size mismatch? 
+
+    // Initialize B if empty/size mismatch?
     // Usually B0 = I.
     if (_B.rows() != x.size()) {
-       _B = M::Identity(x.size(), x.size());
+      _B = M::Identity(x.size(), x.size());
     }
 
-    for (_iters = 0; _iters < _max_iters && Gradient(x).norm() > _tol;
-         ++_iters) {
+    for (_iters = 0; _iters < _max_iters && Gradient(x).norm() > _tol; ++_iters) {
 
       _solver.compute(_B);
       check(_solver.info() == Eigen::Success, "conjugate gradient solver error");
@@ -70,14 +57,13 @@ public:
       double alpha = 1.0;
       alpha = this->line_search(x, p, f, Gradient);
 
-      V s = alpha * p; 
+      V s = alpha * p;
       V x_next = x + s;
 
-      V y = Gradient(x_next) - Gradient(x); 
+      V y = Gradient(x_next) - Gradient(x);
 
       M b_prod = _B * s;
-      _B = _B + (y * y.transpose()) / (y.transpose() * s) -
-           (b_prod * b_prod.transpose()) / (s.transpose() * _B * s);
+      _B = _B + (y * y.transpose()) / (y.transpose() * s) - (b_prod * b_prod.transpose()) / (s.transpose() * _B * s);
 
       x = x_next;
     }

@@ -61,7 +61,7 @@ public:
    * @brief Backward pass: compute dW, db, and optionally dX
    * @param handle cuBLAS handle
    * @param input Input activations
-   * @param output Output activations 
+   * @param output Output activations
    * @param next_grad Gradient w.r.t. output (out x batch), updated in-place
    * @param batch Batch size
    * @param prev_grad Optional gradient w.r.t. input (in x batch)

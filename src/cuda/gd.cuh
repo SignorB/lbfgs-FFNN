@@ -56,9 +56,8 @@ public:
     }
 
     if (recorder_) recorder_->reset();
-    // Full-batch gradient and loss. loss_grad returns sum over samples.
+    // Full-batch gradient and loss. loss_grad returns average loss/grad over the batch.
     CudaScalar loss = loss_grad(params, grad.data(), input, target, total_samples);
-    // loss_grad already returns average loss/grad over the batch.
     CudaScalar effective_lr = lr_;
 
     cudaEvent_t iter_start{};
