@@ -2,6 +2,7 @@
 
 #include "../common.hpp"
 #include "stochastic_minimizer.hpp"
+#include "ring_buffer.hpp"
 
 #include <Eigen/Eigen>
 #include <autodiff/reverse/var.hpp>
@@ -97,7 +98,7 @@ V finite_difference_hvp_batch(BatchFn &g, const V &weights, const std::vector<si
 // Helper: L-BFGS Two Loop Recursion
 // -------------------------------------------------------------------------
 template <typename V>
-V lbfgs_two_loop(const std::vector<V>& s_list, const std::vector<V>& y_list, const std::vector<double>& rho_list, const V& v) {
+V lbfgs_two_loop(const RingBuffer<V>& s_list, const RingBuffer<V>& y_list, const RingBuffer<double>& rho_list, const V& v) {
     int M = s_list.size();
     std::vector<double> alpha(M);
     V q = v;
@@ -168,10 +169,10 @@ V SLBFGS<V,M>::stochastic_solve(V weights,
        if(logfile_stream.is_open()) logfile_stream << "passes,loss,iteration" << std::endl;
     }
     
-    std::vector<V> u_list;       
-    std::vector<V> s_list;        
-    std::vector<V> y_list;        
-    std::vector<double> rho_list; 
+    RingBuffer<V> u_list(M_param > 0 ? M_param + 1 : 0);       
+    RingBuffer<V> s_list(M_param > 0 ? M_param : 0);        
+    RingBuffer<V> y_list(M_param > 0 ? M_param : 0);        
+    RingBuffer<double> rho_list(M_param > 0 ? M_param : 0); 
 
     int seed=56;
     std::mt19937 rng(seed); 
@@ -180,8 +181,7 @@ V SLBFGS<V,M>::stochastic_solve(V weights,
     V wt = weights;
     this->step_size = step_size;
 
-    std::vector<V> w_history;
-    w_history.reserve(static_cast<size_t>(L + 1));
+    RingBuffer<V> w_history(L + 1);
 
     // Full Batch Indices
     std::vector<size_t> full_indices(N);
@@ -225,9 +225,7 @@ V SLBFGS<V,M>::stochastic_solve(V weights,
             V direction = lbfgs_two_loop(s_list, y_list, rho_list, variance_reduced_gradient);
             wt = wt - this->step_size * direction;
 
-            if (w_history.size() >= static_cast<size_t>(L + 1)) {
-                w_history.erase(w_history.begin());
-            }
+
             w_history.push_back(wt);
 
             // 3. Hessian Update (Curvature Pairs)
@@ -235,7 +233,7 @@ V SLBFGS<V,M>::stochastic_solve(V weights,
                 
                 V u = V::Zero(dim_weights);
                 const int num_wt = static_cast<int>(w_history.size());
-                for (const auto& w : w_history) u += w;
+                for (size_t i = 0; i < w_history.size(); ++i) u += w_history[i];
                 if (num_wt > 0) u /= static_cast<double>(num_wt);
 
                 if (!u_list.empty()) {
@@ -256,15 +254,9 @@ V SLBFGS<V,M>::stochastic_solve(V weights,
                     }
                 }
 
-                if (M_param > 0 && s_list.size() > static_cast<size_t>(M_param)) {
-                   s_list.erase(s_list.begin());
-                   y_list.erase(y_list.begin());
-                   rho_list.erase(rho_list.begin());
-                }
 
-                if (u_list.size() >= static_cast<size_t>(M_param + 1)) {
-                   u_list.erase(u_list.begin());
-                }
+
+
                 u_list.push_back(u);
             }
         } 

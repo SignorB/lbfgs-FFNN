@@ -2,6 +2,7 @@
 
 #include "../common.hpp"
 #include "full_batch_minimizer.hpp"
+#include "ring_buffer.hpp"
 #include <autodiff/forward/dual.hpp>
 #include <Eigen/Eigen>
 
@@ -27,9 +28,9 @@ public:
 
   V solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient) override {
 
-    std::vector<V> s_list;        
-    std::vector<V> y_list;        
-    std::vector<double> rho_list; 
+    RingBuffer<V> s_list(m);        
+    RingBuffer<V> y_list(m);        
+    RingBuffer<double> rho_list(m); 
 
     V grad = Gradient(x); 
     V p = -grad;          
@@ -65,11 +66,7 @@ public:
           y_list.push_back(y);
           rho_list.push_back(rho);
 
-          if (s_list.size() > m) {
-            s_list.erase(s_list.begin());
-            y_list.erase(y_list.begin());
-            rho_list.erase(rho_list.begin());
-          }
+
       }
       
       grad = grad_new;
@@ -82,9 +79,9 @@ public:
    * @brief Two-loop recursion to compute search direction.
    */
   V compute_direction(const V &grad,
-                      const std::vector<V> &s_list,
-                      const std::vector<V> &y_list,
-                      const std::vector<double> &rho_list) {
+                      const RingBuffer<V> &s_list,
+                      const RingBuffer<V> &y_list,
+                      const RingBuffer<double> &rho_list) {
 
     if (s_list.empty()) {
       return -grad;
