@@ -18,7 +18,6 @@ add_compile_options(
     $<$<COMPILE_LANGUAGE:CXX>:-march=native>
     $<$<COMPILE_LANGUAGE:CXX>:-std=c++20>
     $<$<COMPILE_LANGUAGE:CXX>:-ffast-math>
-    $<$<COMPILE_LANGUAGE:CXX>:-Wall>
     $<$<COMPILE_LANGUAGE:CXX>:-Wextra>
     $<$<COMPILE_LANGUAGE:CXX>:-ftemplate-depth=32768>
     $<$<COMPILE_LANGUAGE:CXX>:-DNDEBUG>
@@ -26,7 +25,6 @@ add_compile_options(
     $<$<COMPILE_LANGUAGE:CUDA>:-DNDEBUG>
     $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-march=native>
     $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-O3>
-    $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-Wall>
     $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-Wextra>
 )
 
@@ -48,8 +46,6 @@ foreach(TARGET ${CXX_TARGETS})
 endforeach()
 
 
-
-
 option(ENABLE_CUDA "Enable CUDA support" OFF)
 
 if(ENABLE_CUDA)
@@ -66,56 +62,44 @@ if(ENABLE_CUDA)
             set(CMAKE_CUDA_ARCHITECTURES 86)
         endif()
 
-        set_source_files_properties(tests/mnist/main.cpp PROPERTIES LANGUAGE CUDA)
-        set_source_files_properties(tests/fashion/main.cpp PROPERTIES LANGUAGE CUDA)
+        set_source_files_properties(tests/mnist/main-gpu.cpp PROPERTIES LANGUAGE CUDA)
+        set_source_files_properties(tests/fashion-mnist/main-gpu.cpp PROPERTIES LANGUAGE CUDA)
 
-        add_executable(test_mnist_cuda tests/cuda/mnist.cu)
-        add_executable(test_fashion_cuda tests/cuda/fashion.cu)
-
-        
-        target_link_libraries(test_mnist_cuda PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
-        target_link_libraries(test_fashion_cuda PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
+        add_executable(test_mnist_gpu tests/mnist/main-gpu.cpp)
+        add_executable(test_fashion_gpu tests/fashion-mnist/main-gpu.cpp)
+        target_link_libraries(test_mnist_gpu PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
+        target_link_libraries(test_fashion_gpu PRIVATE autodiff::autodiff Eigen3::Eigen CUDA::cublas CUDA::cudart)
 
         message(STATUS "CUDA compiler found. Enabled cuda tests.")
     else()
-    message(WARNING "CUDA compiler not found. Skipping .cu sources.")
+        message(WARNING "CUDA compiler not found. Skipping .cu sources.")
     endif()
 endif()
 
-# Unified MNIST Test (Works on CPU too)
-add_executable(test_mnist tests/mnist/main.cpp)
-add_executable(test_fashion tests/fashion/main.cpp)
-target_link_libraries(test_mnist PRIVATE autodiff::autodiff Eigen3::Eigen)
-target_link_libraries(test_fashion PRIVATE autodiff::autodiff Eigen3::Eigen)
-
-if(ENABLE_CUDA)
-    target_link_libraries(test_mnist PRIVATE CUDA::cublas CUDA::cudart)
-    target_link_libraries(test_fashion PRIVATE CUDA::cublas CUDA::cudart)
-endif()
+add_executable(test_mnist_cpu tests/mnist/main-cpu.cpp)
+add_executable(test_fashion_cpu tests/fashion-mnist/main-cpu.cpp)
+target_link_libraries(test_mnist_cpu PRIVATE autodiff::autodiff Eigen3::Eigen)
+target_link_libraries(test_fashion_cpu PRIVATE autodiff::autodiff Eigen3::Eigen)
 
 find_package(OpenMP)
 
 if(OpenMP_CXX_FOUND)
     message(STATUS "OpenMP found! Enabling Eigen parallelization.")
-    target_link_libraries(test_mnist PRIVATE OpenMP::OpenMP_CXX)
-    
-    if(TARGET test_mnist)
-        target_link_libraries(test_mnist PRIVATE OpenMP::OpenMP_CXX)
-        target_compile_definitions(test_mnist PRIVATE EIGEN_USE_OPENMP)
-    endif()
-    if(TARGET test_fashion)
-        target_link_libraries(test_fashion PRIVATE OpenMP::OpenMP_CXX)
-        target_compile_definitions(test_fashion PRIVATE EIGEN_USE_OPENMP)
-    endif()
+    foreach(TARGET test_mnist_cpu test_fashion_cpu)
+        if(TARGET ${TARGET})
+            target_link_libraries(${TARGET} PRIVATE OpenMP::OpenMP_CXX)
+            target_compile_definitions(${TARGET} PRIVATE EIGEN_USE_OPENMP)
+        endif()
+    endforeach()
 
-    target_compile_definitions(test_mnist PRIVATE EIGEN_USE_OPENMP)
-    target_compile_definitions(test_fashion PRIVATE EIGEN_USE_OPENMP)
-    
-    if(ENABLE_CUDA AND TARGET test_mnist)
-        target_compile_options(test_mnist PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler -fopenmp>)
-    endif()
-    if(ENABLE_CUDA AND TARGET test_fashion)
-        target_compile_options(test_fashion PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler -fopenmp>)
+    if(ENABLE_CUDA)
+        foreach(TARGET test_mnist_gpu test_fashion_gpu)
+            if(TARGET ${TARGET})
+                target_link_libraries(${TARGET} PRIVATE OpenMP::OpenMP_CXX)
+                target_compile_definitions(${TARGET} PRIVATE EIGEN_USE_OPENMP)
+                target_compile_options(${TARGET} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler -fopenmp>)
+            endif()
+        endforeach()
     endif()
 else()
     message(WARNING "OpenMP not found. Eigen will run in single-thread mode.")

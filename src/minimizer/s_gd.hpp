@@ -136,7 +136,7 @@ private:
   M _inputs;
   M _targets;
   S_VecFun _sf;
-  BatchGradFun _batch_g; // MODIFICATO: Tipo batch
+  BatchGradFun _batch_g;
 };
 
 template <typename V, typename M>

@@ -1,4 +1,9 @@
 #pragma once
+/**
+ * @file layer.hpp
+ * @brief Layer interfaces and dense layer implementation for CPU.
+ */
+
 #include "common.hpp"
 #include <Eigen/Core>
 #include <Eigen/src/Core/Map.h>
@@ -7,18 +12,21 @@
 
 namespace cpu_mlp {
 
+/// @brief Linear activation (identity).
 struct Linear {
   static inline double apply(double x) { return x; }
   static inline double prime(double /*x*/) { return 1.0; }
   static constexpr double scale = 1.0;
 };
 
+/// @brief ReLU activation.
 struct ReLU {
   static inline double apply(double x) { return (x > 0.0) ? x : 0.0; }
   static inline double prime(double x) { return (x > 0.0) ? 1.0 : 0.0; }
   static constexpr double scale = 1.41421356;
 };
 
+/// @brief Sigmoid activation.
 struct Sigmoid {
   static inline double apply(double x) { return 1.0 / (1.0 + std::exp(-x)); }
   static inline double prime(double x) {
@@ -28,6 +36,7 @@ struct Sigmoid {
   static constexpr double scale = 1.0;
 };
 
+/// @brief Tanh activation.
 struct Tanh {
   static inline double apply(double x) { return std::tanh(x); }
   static inline double prime(double x) {
@@ -37,18 +46,31 @@ struct Tanh {
   static constexpr double scale = 1.0;
 };
 
+/**
+ * @brief Abstract layer interface.
+ */
 class Layer {
 public:
   virtual ~Layer() = default;
+  /// @brief Bind parameter and gradient storage.
   virtual void bind(double *params, double *grads) = 0;
+  /// @brief Forward pass for a batch.
   virtual void forward(const Eigen::MatrixXd &input, Eigen::MatrixXd &output) = 0;
+  /// @brief Backward pass for a batch.
   virtual void backward(const Eigen::MatrixXd &next_grad, Eigen::MatrixXd *prev_grad) = 0;
+  /// @brief Input dimension.
   virtual int getInSize() const = 0;
+  /// @brief Output dimension.
   virtual int getOutSize() const = 0;
+  /// @brief Parameter count.
   virtual int getParamsSize() const = 0;
+  /// @brief Initialization scale.
   virtual double getInitStdDev() const = 0;
 };
 
+/**
+ * @brief Fully-connected layer with activation.
+ */
 template <int In, int Out, typename Activation = Linear> class DenseLayer : public Layer {
 private:
   using MapMatW = Eigen::Map<const Eigen::MatrixXd>;
@@ -79,6 +101,7 @@ public:
     MapMatW W(params_ptr, Out, In);
     MapVecB b(params_ptr + (Out * In), Out);
 
+    // Cache inputs for backward pass.
     input_cache = input;
     z_cache = W * input;
     z_cache.colwise() += b;
@@ -90,14 +113,16 @@ public:
     MapMatW_Grad dW(grads_ptr, Out, In);
     MapVecB_Grad db(grads_ptr + (Out * In), Out);
 
+    // Apply activation derivative to incoming gradient.
     Eigen::MatrixXd dZ = next_grad.cwiseProduct(z_cache.unaryExpr([](double v) { return Activation::prime(v); }));
 
-    // nalias ~= __restrict__
+    // Accumulate parameter gradients.
     dW.noalias() += dZ * input_cache.transpose();
     db.noalias() += dZ.rowwise().sum();
 
     if (prev_grad) {
       MapMatW W(params_ptr, Out, In);
+      // Propagate gradient to previous layer.
       *prev_grad = W.transpose() * dZ;
     }
   }

@@ -1,7 +1,12 @@
 #pragma once
 
+/**
+ * @file unified_launcher.hpp
+ * @brief Training launcher that wires datasets, networks, and optimizers.
+ */
+
 #include "network_wrapper.hpp"
-#include "unified_optimization.hpp" // Includes Optimizer strategies and Config/Dataset structs
+#include "unified_optimization.hpp" // Optimizer strategies and config/dataset types
 #include <Eigen/Core>
 #include <iostream>
 #include <memory>
@@ -9,26 +14,35 @@
 
 template <typename Backend> class UnifiedLauncher;
 
+/**
+ * @brief CPU launcher specialization.
+ */
 template <> class UnifiedLauncher<CpuBackend> {
 public:
   UnifiedLauncher() = default;
 
+  /// @brief Add a layer to the CPU network.
   template <int In, int Out, typename Activation> void addLayer() { net_wrapper_.addLayer<In, Out, Activation>(); }
 
+  /// @brief Finalize parameters and internal buffers.
   void buildNetwork() { net_wrapper_.bindParams(); }
 
+  /// @brief Attach the training/test dataset.
   void setData(const UnifiedDataset &data) { dataset_ = data; }
 
+  /// @brief Run training for the selected optimizer.
   void train(UnifiedOptimizer<CpuBackend> &optimizer, const UnifiedConfig &config) {
     std::cout << ">>> Running CPU Experiment: " << config.name << std::endl;
-
+    // Train on the configured dataset.
     optimizer.optimize(net_wrapper_, dataset_, config);
-
+    // Evaluate on training data.
     net_wrapper_.getInternal().test(dataset_.train_x, dataset_.train_y, "Training Results");
   }
 
+  /// @brief Evaluate on test data.
   void test() { net_wrapper_.getInternal().test(dataset_.test_x, dataset_.test_y, "Test Results"); }
 
+  /// @brief Access the underlying wrapper.
   NetworkWrapper<CpuBackend> &getWrapper() { return net_wrapper_; }
 
 private:
@@ -39,17 +53,24 @@ private:
 #ifdef __CUDACC__
   #include "cuda/cublas_handle.cuh"
 
+/**
+ * @brief CUDA launcher specialization.
+ */
 template <> class UnifiedLauncher<CudaBackend> {
 public:
   UnifiedLauncher() : net_wrapper_(handle_) {}
 
+  /// @brief Add a layer to the CUDA network.
   template <int In, int Out, typename Activation> void addLayer() { net_wrapper_.addLayer<In, Out, Activation>(); }
 
+  /// @brief Finalize parameters and internal buffers.
   void buildNetwork() { net_wrapper_.bindParams(); }
 
+  /// @brief Upload dataset to device buffers.
   void setData(const UnifiedDataset &data) {
     dataset_ = data;
 
+    // Host-to-device upload.
     auto upload = [](const Eigen::MatrixXd &mat, cuda_mlp::DeviceBuffer<cuda_mlp::CudaScalar> &dev_buf) {
       if constexpr (std::is_same<double, cuda_mlp::CudaScalar>::value) {
         dev_buf.copy_from_host((const cuda_mlp::CudaScalar *)mat.data(), mat.size());
@@ -71,17 +92,20 @@ public:
     std::cout << "Data Uploaded to GPU. Train: " << dataset_.train_x.cols() << " samples." << std::endl;
   }
 
+  /// @brief Run training for the selected optimizer.
   void train(UnifiedOptimizer<CudaBackend> &optimizer, const UnifiedConfig &config) {
     std::cout << ">>> Running CUDA Experiment: " << config.name << std::endl;
-
+    // Train on device buffers.
     optimizer.optimize(handle_, net_wrapper_, dataset_, d_train_x_, d_train_y_, config);
-
+    // Evaluate on training data.
     evaluate(dataset_.train_x, dataset_.train_y, d_train_x_, "Training Results");
   }
 
+  /// @brief Evaluate on test data.
   void test() { evaluate(dataset_.test_x, dataset_.test_y, d_test_x_, "Test Results"); }
 
 private:
+  /// @brief Compute accuracy and MSE from device outputs.
   void evaluate(const Eigen::MatrixXd &x,
       const Eigen::MatrixXd &y,
       cuda_mlp::DeviceBuffer<cuda_mlp::CudaScalar> &d_x,

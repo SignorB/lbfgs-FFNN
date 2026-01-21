@@ -1,10 +1,16 @@
 #pragma once
 
+/**
+ * @file common.hpp
+ * @brief Common aliases and utilities shared across CPU components.
+ */
+
 #include <Eigen/Eigen>
 #include <functional>
 #include <iostream>
 
 #ifndef NDEBUG
+  /// @brief Debug assertion with message and source location.
   #define check(condition, message)                                                                                         \
     do {                                                                                                                    \
       if (!condition) {                                                                                                     \
@@ -18,19 +24,24 @@
     } while (0)
 
 #else
+  /// @brief No-op assertion in release builds.
   #define check(condition, message) ((void)0)
 #endif
 
+/// @brief Gradient function type alias (T -> T).
 template <typename T> using GradFun = std::function<T(T)>;
 
+/// @brief Objective function type alias (T -> W).
 template <typename T, typename W> using VecFun = std::function<W(T)>;
 
+/// @brief Hessian function type alias (V -> M).
 template <typename V, typename M> using HessFun = std::function<M(V)>;
 
 #ifdef _OPENMP
   #include <omp.h>
 #endif
 
+/// @brief Print Eigen/OpenMP parallelism settings for diagnostics.
 inline void checkParallelism() {
   std::cout << "=== CHECK EIGEN PARALLELISM ===" << std::endl;
 

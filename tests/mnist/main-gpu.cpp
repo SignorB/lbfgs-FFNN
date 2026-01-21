@@ -77,23 +77,5 @@ int main() {
     launcher.test();
   }
 
-  // {
-  //   UnifiedConfig config;
-  //   config.name = "MNIST_SLBFGS";
-  //   config.max_iters = 200;
-  //   config.tolerance = 1e-4;
-  //   config.learning_rate = 0.02;
-  //   config.batch_size = 256;
-  //   config.m_param = 10;
-  //   config.L_param = 10;
-  //   config.b_H_param = 128;
-  //   config.log_interval = 1;
-
-  //   std::cout << "Running SLBFGS..." << std::endl;
-  //   UnifiedSLBFGS<Backend> optimizer;
-  //   launcher.train(optimizer, config);
-  //   launcher.test();
-  // }
-
   return 0;
 }
