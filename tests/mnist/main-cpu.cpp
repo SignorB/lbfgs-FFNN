@@ -68,7 +68,7 @@ int main() {
   {
     UnifiedConfig config;
     config.name = "MNIST_SLBFGS";
-    config.max_iters = 10;
+    config.max_iters = 1000;
     config.tolerance = 1e-4;
     config.learning_rate = 0.02;
     config.batch_size = 256;
