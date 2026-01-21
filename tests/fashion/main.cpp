@@ -31,8 +31,8 @@ int main() {
 
   auto run_experiment = [&](const UnifiedConfig &config, auto optimizer) {
     UnifiedLauncher<Backend> launcher;
-    launcher.addLayer<784, 128, Tanh>();
-    launcher.addLayer<128, 10, Linear>();
+    launcher.addLayer<784, 128, cpu_mlp::Tanh>();
+    launcher.addLayer<128, 10, cpu_mlp::Linear>();
     launcher.buildNetwork();
     launcher.setData(dataset);
 

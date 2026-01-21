@@ -4,7 +4,7 @@
 #include <iostream>
 #include <omp.h>
 
-using Backend = CpuBackend; 
+using Backend = CpuBackend;
 
 int main() {
   checkParallelism();
@@ -13,9 +13,9 @@ int main() {
   std::cout << "Building Network..." << std::endl;
   launcher.addLayer<784, 128, cpu_mlp::Tanh>();
   launcher.addLayer<128, 10, cpu_mlp::Linear>();
+  launcher.buildNetwork();
 
-
-  int train_size = 60000;
+  int train_size = 5000;
   int test_size = 10000;
   std::cout << "Loading Training Data..." << std::endl;
   Eigen::MatrixXd train_x = MNISTLoader::loadImages("../tests/mnist/train-images.idx3-ubyte", train_size);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../common.hpp"
+#include "../iteration_recorder.hpp"
 #include <Eigen/Eigen>
 #include <limits>
 #include <cmath>
@@ -51,11 +52,17 @@ public:
      * @return Tolerance value.
      */
     double tolerance() const { return _tol; }
+    /**
+     * @brief Attach a recorder for loss/grad history.
+     * @param recorder Recorder instance (may be null).
+     */
+    void setRecorder(::IterationRecorder<CpuBackend> *recorder) { recorder_ = recorder; }
 
 protected:
     unsigned int _max_iters = 1000;
     unsigned int _iters = 0;
     double _tol = 1e-10;
+    ::IterationRecorder<CpuBackend> *recorder_ = nullptr; ///< Optional recorder for diagnostics
 
     // Line Search Parameters
     double c1 = 1e-4;

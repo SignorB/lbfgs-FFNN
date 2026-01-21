@@ -77,6 +77,47 @@ inline void write_cpu_history_csv(
   }
 }
 
+inline void run_full_batch_cpu(
+    NetworkWrapper<CpuBackend> &net,
+    const UnifiedDataset &data,
+    cpu_mlp::FullBatchMinimizer<Eigen::VectorXd, Eigen::MatrixXd> &minimizer) {
+  using Vec = Eigen::VectorXd;
+  using Mat = Eigen::MatrixXd;
+
+  auto &network = net.getInternal();
+  size_t params_size = network.getSize();
+
+  Vec weights(params_size);
+  std::copy(network.getParamsData(), network.getParamsData() + params_size, weights.data());
+
+  const double inv_samples =
+      (data.train_x.cols() > 0) ? (1.0 / static_cast<double>(data.train_x.cols())) : 0.0;
+
+  VecFun<Vec, double> f = [&](Vec w) -> double {
+    network.setParams(w);
+    const auto &output = network.forward(data.train_x);
+    Mat diff = output - data.train_y;
+    double loss = 0.5 * diff.squaredNorm();
+    if (inv_samples != 0.0) loss *= inv_samples;
+    return loss;
+  };
+
+  GradFun<Vec> grad = [&](Vec w) -> Vec {
+    network.setParams(w);
+    network.zeroGrads();
+    const auto &output = network.forward(data.train_x);
+    Mat diff = output - data.train_y;
+    network.backward(diff);
+    Vec g(params_size);
+    network.getGrads(g);
+    if (inv_samples != 0.0) g *= inv_samples;
+    return g;
+  };
+
+  Vec final_weights = minimizer.solve(weights, f, grad);
+  network.setParams(final_weights);
+}
+
 // -----------------------------------------------------------
 // Abstract Strategy Wrapper
 // -----------------------------------------------------------
@@ -127,7 +168,7 @@ public:
     recorder.init(config.max_iters);
     minimizer->setRecorder(&recorder);
 
-    net.getInternal().train(data.train_x, data.train_y, minimizer);
+    run_full_batch_cpu(net, data, *minimizer);
     write_cpu_history_csv(cpu_log_filename(config), recorder, config.log_interval);
   }
 };
@@ -150,7 +191,7 @@ public:
     recorder.init(config.max_iters);
     minimizer->setRecorder(&recorder);
 
-    net.getInternal().train(data.train_x, data.train_y, minimizer);
+    run_full_batch_cpu(net, data, *minimizer);
     write_cpu_history_csv(cpu_log_filename(config), recorder, config.log_interval);
   }
 };
