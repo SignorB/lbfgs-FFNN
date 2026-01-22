@@ -33,7 +33,16 @@ public:
    */
   virtual V solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient) = 0;
 
+  /**
+   * @brief Sets the initial Hessian approximation (if applicable).
+   * @param hess Initial Hessian matrix.
+   */
   virtual void setInitialHessian(const M & /*hess*/) {}
+
+  /**
+   * @brief Sets the Hessian function (for Second Order methods).
+   * @param hessFun Function to compute the Hessian.
+   */
   virtual void setHessian(const HessFun<V, M> & /*hessFun*/) {}
 
   /**
@@ -59,7 +68,16 @@ public:
    * @param max_iters Limit on iterations.
    */
   void setMaxIterations(int max_iters) { _max_iters = max_iters; }
+  /**
+   * @brief Sets the maximum number of iterations for the line search.
+   * @param max_line Maximum line search iterations.
+   */
   void setMaxLineIters(int max_line) { max_line_iters = max_line; }
+
+  /**
+   * @brief Sets the maximum iterations for Armijo condition check (alias for setMaxLineIters).
+   * @param max_armijo Maximum iterations.
+   */
   void setArmijoMaxIter(int max_armijo) { max_line_iters = max_armijo; }
 
   /**

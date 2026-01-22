@@ -160,6 +160,12 @@ public:
  */
 class UnifiedGD_CPU : public UnifiedOptimizer<CpuBackend> {
 public:
+  /**
+   * @brief Optimize the network using Gradient Descent on CPU.
+   * @param net The network wrapper.
+   * @param data The dataset.
+   * @param config Configuration parameters.
+   */
   void optimize(NetworkWrapper<CpuBackend> &net, const UnifiedDataset &data, const UnifiedConfig &config) override {
     using Vec = Eigen::VectorXd;
     using Mat = Eigen::MatrixXd;
@@ -184,6 +190,12 @@ public:
  */
 class UnifiedLBFGS_CPU : public UnifiedOptimizer<CpuBackend> {
 public:
+  /**
+   * @brief Optimize the network using L-BFGS on CPU.
+   * @param net The network wrapper.
+   * @param data The dataset.
+   * @param config Configuration parameters.
+   */
   void optimize(NetworkWrapper<CpuBackend> &net, const UnifiedDataset &data, const UnifiedConfig &config) override {
     using Vec = Eigen::VectorXd;
     using Mat = Eigen::MatrixXd;
@@ -207,6 +219,12 @@ public:
  */
 class UnifiedSGD_CPU : public UnifiedOptimizer<CpuBackend> {
 public:
+  /**
+   * @brief Optimize the network using Stochastic Gradient Descent on CPU.
+   * @param net The network wrapper.
+   * @param data The dataset.
+   * @param config Configuration parameters.
+   */
   void optimize(NetworkWrapper<CpuBackend> &net, const UnifiedDataset &data, const UnifiedConfig &config) override {
     using Vec = Eigen::VectorXd;
     using Mat = Eigen::MatrixXd;
@@ -287,6 +305,12 @@ public:
  */
 class UnifiedSLBFGS_CPU : public UnifiedOptimizer<CpuBackend> {
 public:
+  /**
+   * @brief Optimize the network using Stochastic L-BFGS on CPU.
+   * @param net The network wrapper.
+   * @param data The dataset.
+   * @param config Configuration parameters.
+   */
   void optimize(NetworkWrapper<CpuBackend> &net, const UnifiedDataset &data, const UnifiedConfig &config) override {
     using Vec = Eigen::VectorXd;
     using Mat = Eigen::MatrixXd;
@@ -496,6 +520,15 @@ inline void run_cuda_solver_once(SolverFactory make_solver,
  */
 class UnifiedGD_CUDA : public UnifiedOptimizer<CudaBackend> {
 public:
+  /**
+   * @brief Optimize the network using Gradient Descent on CUDA.
+   * @param handle Cublas handle.
+   * @param net Network wrapper.
+   * @param d Dataset (host info).
+   * @param dx Training data (device).
+   * @param dy Training targets (device).
+   * @param c Configuration parameters.
+   */
   void optimize(cuda_mlp::CublasHandle &handle,
       NetworkWrapper<CudaBackend> &net,
       const UnifiedDataset &d,
@@ -526,6 +559,15 @@ public:
  */
 class UnifiedLBFGS_CUDA : public UnifiedOptimizer<CudaBackend> {
 public:
+  /**
+   * @brief Optimize the network using L-BFGS on CUDA.
+   * @param handle Cublas handle.
+   * @param net Network wrapper.
+   * @param d Dataset (host info).
+   * @param dx Training data (device).
+   * @param dy Training targets (device).
+   * @param c Configuration parameters.
+   */
   void optimize(cuda_mlp::CublasHandle &handle,
       NetworkWrapper<CudaBackend> &net,
       const UnifiedDataset &d,
@@ -555,6 +597,15 @@ public:
  */
 class UnifiedSGD_CUDA : public UnifiedOptimizer<CudaBackend> {
 public:
+  /**
+   * @brief Optimize the network using Stochastic Gradient Descent on CUDA.
+   * @param handle Cublas handle.
+   * @param net Network wrapper.
+   * @param d Dataset (host info).
+   * @param dx Training data (device).
+   * @param dy Training targets (device).
+   * @param c Configuration parameters.
+   */
   void optimize(cuda_mlp::CublasHandle &handle,
       NetworkWrapper<CudaBackend> &net,
       const UnifiedDataset &d,

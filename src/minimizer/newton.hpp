@@ -18,8 +18,19 @@ template <typename V, typename M> class Newton : public FullBatchMinimizer<V, M>
   using Base::line_search;
 
 public:
+  /**
+   * @brief Sets the Hessian function for computing the second derivative matrix.
+   * @param hessFun A function that takes a parameter vector and returns the Hessian matrix.
+   */
   void setHessian(const HessFun<V, M> &hessFun) noexcept { _hessFun = hessFun; }
 
+  /**
+   * @brief Solves the unconstrained optimization problem using Newton's Method.
+   * @param x Initial parameter vector.
+   * @param f Objective function.
+   * @param Gradient Gradient function.
+   * @return The optimized parameter vector.
+   */
   V solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient) override {
     Eigen::LDLT<M> ldlt;
 

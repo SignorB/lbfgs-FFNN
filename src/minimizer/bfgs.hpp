@@ -37,8 +37,19 @@ public:
   BFGS(Solver &solver)
   requires(!UseDefaultSolver) : _solver(solver) {}
 
+  /**
+   * @brief Sets the initial approximate Hessian matrix.
+   * @param b Initial Hessian approximation (usually Identity).
+   */
   void setInitialHessian(const M &b) { _B = b; }
 
+  /**
+   * @brief Solves the optimization problem using BFGS method.
+   * @param x Initial guess for the parameters.
+   * @param f Objective function to minimize.
+   * @param Gradient Function to compute the gradient of f.
+   * @return Optimized parameter vector.
+   */
   V solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient) override {
 
     // Initialize B if empty/size mismatch?
