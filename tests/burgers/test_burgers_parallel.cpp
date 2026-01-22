@@ -50,7 +50,7 @@ static Real get_ux(const Real *xt, const Real *p) { return calc_du(xt, p, 0); }
 
 static Real pde_residual(Real x, Real t, const Real *p) {
   Real xt[2] = {x, t};
-  Real nu = 0.1 / M_PI;
+  Real nu = 0.01 / M_PI;
 
   Real u = get_u(xt, p);
   Real ut = calc_du(xt, p, 1);
@@ -120,7 +120,7 @@ int main() {
   solver->setHistorySize(100);
   solver->setMaxLineIters(100);
   solver->setArmijoMaxIter(50);
-  solver->setMaxIterations(600);
+  solver->setMaxIterations(5000);
 
   VectorXr w = Eigen::Map<VectorXr>(net.params.data(), MyPINN::TotalParams);
 
