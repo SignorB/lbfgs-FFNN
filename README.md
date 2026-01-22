@@ -2,7 +2,7 @@
 
 Documentation: https://frabazz.github.io/lbfgs-FFNN/
 
-This project implements advanced Quasi-Newton optimization methods, specifically **L-BFGS** (Limited-memory Broyden–Fletcher–Goldfarb–Shanno) and its stochastic variant **S-LBFGS**, designed for large-scale and finite-sum minimization problems.
+This project implements advanced Quasi-Newton optimization methods, specifically **L-BFGS** (Limited-memory Broyden–Fletcher–Goldfarb–Shanno) and its stochastic variant **S-LBFGS**, designed for large-scale minimization problems.
 
 
 ## Algorithms
@@ -144,6 +144,16 @@ Notes: If CUDA is enabled but no CUDA compiler is found, CUDA targets are skippe
 ## PINN Experiments (Burgers)
 
 Standalone CMake is available under `tests/burgers` to keep the main project build unchanged. This target requires Clang and the Enzyme plugin.
+
+Before building the Burgers tests, make sure Enzyme is compiled following the official guide https://enzyme.mit.edu/Installation/ or by building the copy under `lib/Enzyme/enzyme`:
+```bash
+mkdir build && cd build
+cmake -G Ninja .. -DLLVM_DIR=/path/to/llvm/lib/cmake/llvm
+ninja
+ninja check-enzyme
+```
+
+We use `clang++-19`, but this should work with Clang >= 14.
 
 ### Build
 ```bash
