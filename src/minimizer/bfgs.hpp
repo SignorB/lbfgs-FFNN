@@ -41,7 +41,7 @@ public:
    * @brief Sets the initial approximate Hessian matrix.
    * @param b Initial Hessian approximation (usually Identity).
    */
-  void setInitialHessian(const M &b) { _B = b; }
+  void setInitialHessian(const M &b) override { _B = b; }
 
   /**
    * @brief Solves the optimization problem using BFGS method.
