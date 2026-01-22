@@ -28,7 +28,7 @@ The S-LBFGS implementation follows the algorithm proposed by *Moritz et al. (201
 #### Key Components:
 
 1. **Variance Reduction (SVRG framework)**: To control the noise in the gradient approximation, we use a semi-stochastic gradient:
-    * Everything $m$ iterations (an epoch), we compute a **full gradient** $\mu = \nabla F(\tilde{w})$ at a reference point $\tilde{w}$.
+    * Every $m$ iterations (an epoch), we compute a **full gradient** $\mu = \nabla F(\tilde{w})$ at a reference point $\tilde{w}$.
     * During the inner loop, we update the reference gradient with mini-batch corrections:
 
 $$
