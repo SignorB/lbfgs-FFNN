@@ -32,9 +32,9 @@ The S-LBFGS implementation follows the algorithm proposed by *Moritz et al. (201
     *   Everything $m$ iterations (an epoch), we compute a **full gradient** $\mu = \nabla F(\tilde{w})$ at a reference point $\tilde{w}$.
     *   During the inner loop, we update the reference gradient with mini-batch corrections:
 
-        $$
-        v_t = \nabla f_{S_t}(w_t) - \nabla f_{S_t}(\tilde{w}) + \mu
-        $$
+$$
+v_t = \nabla f_{S_t}(w_t) - \nabla f_{S_t}(\tilde{w}) + \mu
+$$
     This $v_t$ is an unbiased estimator of $\nabla F(w_t)$ with reduced variance as $w_t \to \tilde{w}$.
 
 2.  **Stable Hessian Update**:
@@ -46,9 +46,9 @@ The S-LBFGS implementation follows the algorithm proposed by *Moritz et al. (201
 3.  **Hessian-Vector Products (HVP)**:
     The curvature vector $y$ is computed using **finite differences** (or automatic differentiation) on a mini-batch:
 
-    $$
-    \nabla^2 F(w) \cdot s \approx \frac{\nabla F(w + \epsilon s) - \nabla F(w - \epsilon s)}{2\epsilon}
-    $$
+$$
+\nabla^2 F(w) \cdot s \approx \frac{\nabla F(w + \epsilon s) - \nabla F(w - \epsilon s)}{2\epsilon}
+$$
     This avoids forming the Hessian matrix while capturing the curvature in the direction $s$.
 
 4.  **Parallelization**:
