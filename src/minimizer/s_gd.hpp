@@ -30,6 +30,9 @@ public:
   using S_VecFun = std::function<double(const V &, const V &, const V &)>;
   using BatchGradFun = std::function<void(const V &, const std::vector<size_t> &, V &)>;
 
+  /**
+   * @brief Default constructor.
+   */
   StochasticGradientDescent() = default;
 
   /**

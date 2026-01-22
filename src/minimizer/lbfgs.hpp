@@ -28,6 +28,13 @@ public:
    */
   void setHistorySize(size_t history_size) { m = history_size; }
 
+  /**
+   * @brief Solves the optimization problem using L-BFGS.
+   * @param x Initial parameter vector.
+   * @param f Objective function.
+   * @param Gradient Gradient function.
+   * @return Optimized parameter vector.
+   */
   V solve(V x, VecFun<V, double> &f, GradFun<V> &Gradient) override {
 
     RingBuffer<V> s_list(m);        

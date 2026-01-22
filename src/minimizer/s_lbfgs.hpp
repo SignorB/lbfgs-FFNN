@@ -67,6 +67,11 @@ public:
    */
   static std::vector<size_t> sample_minibatch_indices(const size_t N, size_t batch_size, std::mt19937 &rng);
 
+  /**
+   * @brief Configure data and callbacks for the solver.
+   * @param f Batch loss function.
+   * @param g Batch gradient function.
+   */
   void setData(const BatchLossFun &f, const BatchGradFun &g) {
     _sf = f;
     _sg = g;

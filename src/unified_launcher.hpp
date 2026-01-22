@@ -21,16 +21,31 @@ template <> class UnifiedLauncher<CpuBackend> {
 public:
   UnifiedLauncher() = default;
 
-  /// @brief Add a layer to the CPU network.
+  /**
+   * @brief Add a layer to the CPU network.
+   * @tparam In Input dimension.
+   * @tparam Out Output dimension.
+   * @tparam Activation Activation function type.
+   */
   template <int In, int Out, typename Activation> void addLayer() { net_wrapper_.addLayer<In, Out, Activation>(); }
 
-  /// @brief Finalize parameters and internal buffers.
+  /**
+   * @brief Finalize parameters and internal buffers.
+   * @details Allocates memory for weights and gradients based on added layers.
+   */
   void buildNetwork() { net_wrapper_.bindParams(); }
 
-  /// @brief Attach the training/test dataset.
+  /**
+   * @brief Attach the training/test dataset.
+   * @param data The UnifiedDataset containing train/test splits.
+   */
   void setData(const UnifiedDataset &data) { dataset_ = data; }
 
-  /// @brief Run training for the selected optimizer.
+  /**
+   * @brief Run training for the selected optimizer.
+   * @param optimizer The optimization strategy to use.
+   * @param config configuration parameters for the experiment.
+   */
   void train(UnifiedOptimizer<CpuBackend> &optimizer, const UnifiedConfig &config) {
     std::cout << ">>> Running CPU Experiment: " << config.name << std::endl;
     if (config.reset_params) {
@@ -42,10 +57,16 @@ public:
     net_wrapper_.getInternal().test(dataset_.train_x, dataset_.train_y, "Training Results");
   }
 
-  /// @brief Evaluate on test data.
+  /**
+   * @brief Evaluate on test data.
+   * @details Prints MSE and Accuracy metrics to stdout.
+   */
   void test() { net_wrapper_.getInternal().test(dataset_.test_x, dataset_.test_y, "Test Results"); }
 
-  /// @brief Access the underlying wrapper.
+  /**
+   * @brief Access the underlying wrapper.
+   * @return Reference to the NetworkWrapper.
+   */
   NetworkWrapper<CpuBackend> &getWrapper() { return net_wrapper_; }
 
 private:
@@ -63,13 +84,24 @@ template <> class UnifiedLauncher<CudaBackend> {
 public:
   UnifiedLauncher() : net_wrapper_(handle_) {}
 
-  /// @brief Add a layer to the CUDA network.
+  /**
+   * @brief Add a layer to the CUDA network.
+   * @tparam In Input dimension.
+   * @tparam Out Output dimension.
+   * @tparam Activation Activation function type.
+   */
   template <int In, int Out, typename Activation> void addLayer() { net_wrapper_.addLayer<In, Out, Activation>(); }
 
-  /// @brief Finalize parameters and internal buffers.
+  /**
+   * @brief Finalize parameters and internal buffers.
+   * @details Allocates memory for weights and gradients on the GPU.
+   */
   void buildNetwork() { net_wrapper_.bindParams(); }
 
-  /// @brief Upload dataset to device buffers.
+  /**
+   * @brief Upload dataset to device buffers.
+   * @param data The UnifiedDataset containing train/test splits.
+   */
   void setData(const UnifiedDataset &data) {
     dataset_ = data;
 
@@ -95,7 +127,11 @@ public:
     std::cout << "Data Uploaded to GPU. Train: " << dataset_.train_x.cols() << " samples." << std::endl;
   }
 
-  /// @brief Run training for the selected optimizer.
+  /**
+   * @brief Run training for the selected optimizer.
+   * @param optimizer The optimization strategy to use.
+   * @param config Configuration parameters for the experiment.
+   */
   void train(UnifiedOptimizer<CudaBackend> &optimizer, const UnifiedConfig &config) {
     std::cout << ">>> Running CUDA Experiment: " << config.name << std::endl;
     if (config.reset_params) {
@@ -107,7 +143,10 @@ public:
     evaluate(dataset_.train_x, dataset_.train_y, d_train_x_, "Training Results");
   }
 
-  /// @brief Evaluate on test data.
+  /**
+   * @brief Evaluate on test data.
+   * @details Runs forward pass on GPU and computes metrics on host.
+   */
   void test() { evaluate(dataset_.test_x, dataset_.test_y, d_test_x_, "Test Results"); }
 
 private:
