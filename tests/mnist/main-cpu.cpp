@@ -35,35 +35,35 @@ int main() {
   launcher.setData(dataset);
   auto start_time = std::chrono::high_resolution_clock::now();
   
-  // {
-  //   UnifiedConfig config;
-  //   config.name = "MNIST_Unified_GD";
-  //   config.max_iters = 1000;
-  //   config.tolerance = 1e-4;
-  //   config.learning_rate = 0.01;
-  //   config.momentum = 0.9;
-  //   config.log_interval = 1;
+  {
+    UnifiedConfig config;
+    config.name = "MNIST_Unified_GD";
+    config.max_iters = 1000;
+    config.tolerance = 1e-4;
+    config.learning_rate = 0.01;
+    config.momentum = 0.9;
+    config.log_interval = 1;
 
-  //   std::cout << "Running GD..." << std::endl;
-  //   UnifiedGD<Backend> optimizer;
-  //   launcher.train(optimizer, config);
-  //   launcher.test();
-  // }
+    std::cout << "Running GD..." << std::endl;
+    UnifiedGD<Backend> optimizer;
+    launcher.train(optimizer, config);
+    launcher.test();
+  }
 
-  //   {
-  //   UnifiedConfig config;
-  //   config.name = "MNIST_SGD";
-  //   config.max_iters = 1000;
-  //   config.tolerance = 1e-4;
-  //   config.learning_rate = 0.03;
-  //   config.batch_size = 256;
-  //   config.log_interval = 5;
+    {
+    UnifiedConfig config;
+    config.name = "MNIST_SGD";
+    config.max_iters = 1000;
+    config.tolerance = 1e-4;
+    config.learning_rate = 0.03;
+    config.batch_size = 256;
+    config.log_interval = 5;
 
-  //   std::cout << "Running SGD..." << std::endl;
-  //   UnifiedSGD<Backend> optimizer;
-  //   launcher.train(optimizer, config);
-  //   launcher.test();
-  // }
+    std::cout << "Running SGD..." << std::endl;
+    UnifiedSGD<Backend> optimizer;
+    launcher.train(optimizer, config);
+    launcher.test();
+  }
 
   {
     UnifiedConfig config;
@@ -87,19 +87,19 @@ int main() {
     launcher.test();
   }
 
-  // {
-  //   UnifiedConfig config;
-  //   config.name = "MNIST_LBFGS";
-  //   config.max_iters = 1000;
-  //   config.tolerance = 1e-4;
-  //   config.m_param = 20;
-  //   config.log_interval = 1;
+  {
+    UnifiedConfig config;
+    config.name = "MNIST_LBFGS";
+    config.max_iters = 1000;
+    config.tolerance = 1e-4;
+    config.m_param = 20;
+    config.log_interval = 1;
 
-  //   std::cout << "Running LBFGS..." << std::endl;
-  //   UnifiedLBFGS<Backend> optimizer;
-  //   launcher.train(optimizer, config);
-  //   launcher.test();
-  // }
+    std::cout << "Running LBFGS..." << std::endl;
+    UnifiedLBFGS<Backend> optimizer;
+    launcher.train(optimizer, config);
+    launcher.test();
+  }
 
   auto end_time = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = end_time - start_time;
