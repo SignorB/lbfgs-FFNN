@@ -22,7 +22,7 @@ public:
    * @brief Sets the Hessian function for computing the second derivative matrix.
    * @param hessFun A function that takes a parameter vector and returns the Hessian matrix.
    */
-  void setHessian(const HessFun<V, M> &hessFun) noexcept { _hessFun = hessFun; }
+  void setHessian(const HessFun<V, M> &hessFun) noexcept override { _hessFun = hessFun; }
 
   /**
    * @brief Solves the unconstrained optimization problem using Newton's Method.
