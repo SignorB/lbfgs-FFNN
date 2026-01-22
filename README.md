@@ -27,29 +27,27 @@ The S-LBFGS implementation follows the algorithm proposed by *Moritz et al. (201
 
 #### Key Components:
 
-1.  **Variance Reduction (SVRG framework)**:
-    To control the noise in the gradient approximation, we use a semi-stochastic gradient:
-    *   Everything $m$ iterations (an epoch), we compute a **full gradient** $\mu = \nabla F(\tilde{w})$ at a reference point $\tilde{w}$.
-    *   During the inner loop, we update the reference gradient with mini-batch corrections:
+1. **Variance Reduction (SVRG framework)**: To control the noise in the gradient approximation, we use a semi-stochastic gradient:
+    * Everything $m$ iterations (an epoch), we compute a **full gradient** $\mu = \nabla F(\tilde{w})$ at a reference point $\tilde{w}$.
+    * During the inner loop, we update the reference gradient with mini-batch corrections:
 
 $$
 v_t = \nabla f_{S_t}(w_t) - \nabla f_{S_t}(\tilde{w}) + \mu
 $$
-    This $v_t$ is an unbiased estimator of $\nabla F(w_t)$ with reduced variance as $w_t \to \tilde{w}$.
 
-2.  **Stable Hessian Update**:
-    Standard BFGS updates are unstable with noisy stochastic gradients. S-LBFGS decouples the Hessian update from the step update:
-    *   Every $L$ iterations, we compute a stable curvature pair $(s, y)$ using a separate mini-batch $b_H$.
-    *   $s = \bar{w}_t - \bar{w}_{t-1}$ (difference of averaged iterates).
-    *   $y = \nabla^2 F(\bar{w})(\bar{w}_t - \bar{w}_{t-1})$ is approximated accurately, often using Hessian-Vector Products (HVP).
+This $v_t$ is an unbiased estimator of $\nabla F(w_t)$ with reduced variance as $w_t \to \tilde{w}$.
 
-3.  **Hessian-Vector Products (HVP)**:
-    The curvature vector $y$ is computed using **finite differences** (or automatic differentiation) on a mini-batch:
+2. **Stable Hessian Update**: Standard BFGS updates are unstable with noisy stochastic gradients. S-LBFGS decouples the Hessian update from the step update:
+    * Every $L$ iterations, we compute a stable curvature pair $(s, y)$ using a separate mini-batch $b_H$.
+    * $s = \bar{w}\_t - \bar{w}\_{t-1}$ (difference of averaged iterates).
+    * $y = \nabla^2 F(\bar{w})(\bar{w}\_t - \bar{w}\_{t-1})$ is approximated accurately, often using Hessian-Vector Products (HVP).
+3. **Hessian-Vector Products (HVP)**: The curvature vector $y$ is computed using **finite differences** (or automatic differentiation) on a mini-batch:
 
 $$
 \nabla^2 F(w) \cdot s \approx \frac{\nabla F(w + \epsilon s) - \nabla F(w - \epsilon s)}{2\epsilon}
 $$
-    This avoids forming the Hessian matrix while capturing the curvature in the direction $s$.
+
+This avoids forming the Hessian matrix while capturing the curvature in the direction $s$.
 
 4.  **Parallelization**:
     The code is parallelized through OpenMP. The costly gradient computations and finite-difference HVPs are parallelized across data points.
@@ -65,7 +63,7 @@ The codebase is split into two concrete backends that share the same high-level 
 - **Core optimizer API**: `src/minimizer/` hosts shared minimizer utilities and interfaces (full-batch and stochastic base classes, ring buffer).
 - **Optimizers**: `src/minimizer/lbfgs.hpp`, `src/minimizer/bfgs.hpp`, `src/minimizer/gd.hpp`, `src/minimizer/s_gd.hpp`, `src/minimizer/s_lbfgs.hpp`, `src/minimizer/newton.hpp`.
 - **Network stack**: `src/network.hpp` and `src/layer.hpp` implement a dense MLP with flat parameter storage and Eigen-based forward/backward.
-- **Unified training flow**: `src/unified_optimization.hpp`, `src/unified_launcher.hpp`, and `src/network_wrapper.hpp` provide backend-agnostic configuration, dataset wiring, and optimizer strategies.
+- **Unified training flow**: `src/unified_optimization.hpp`, `src/unified_launcher.hpp`, and `src/network_wrapper.hpp` provide backend configuration, dataset setup, and optimizer strategies.
 
 ### CUDA Backend
 
@@ -104,7 +102,7 @@ We use **CMake** for build configuration.
 
 ### Prerequisites
 - CMake >= 3.18
-- A C++20 compiler (GCC/Clang)
+- A C++20 compiler
 - Eigen3 (required)
 - OpenMP (optional, enables Eigen multithreading)
 - CUDA toolkit + cuBLAS (optional, for GPU targets)
@@ -153,7 +151,7 @@ ninja
 ninja check-enzyme
 ```
 
-We use `clang++-19`, but this should work with Clang >= 14.
+We tested on `clang++-19`, but this should work with Clang >= 14.
 
 ### Build
 ```bash
