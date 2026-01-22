@@ -91,7 +91,7 @@ The S-LBFGS implementation follows the algorithm proposed by *Moritz et al. (201
     This avoids forming the Hessian matrix while capturing the curvature in the direction $s$.
 
 4.  **Parallelization**:
-    The code includes an OpenMP-optimized version (`s_lbfgs_parallel.hpp`) that parallelizes the costly gradient computations and finite-difference HVPs across data points.
+    The code is parallelized through OpenMP. The costly gradient computations and finite-difference HVPs are parallelized across data points.
 
 ---
 
@@ -102,7 +102,7 @@ The codebase is split into two concrete backends that share the same high-level 
 ### CPU Backend (Eigen + OpenMP)
 
 - **Core optimizer API**: `src/minimizer_base.hpp` exposes a common interface plus line search and helpers for automatic differentiation (autodiff and optional Enzyme).
-- **Optimizers**: `src/lbfgs.hpp`, `src/bfgs.hpp`, `src/gd.hpp`, `src/s_gd.hpp`, `src/s_lbfgs.hpp`, `src/s_lbfgs_parallel.hpp`, `src/newton.hpp` implement deterministic and stochastic solvers on top of the base class.
+- **Optimizers**: `src/lbfgs.hpp`, `src/bfgs.hpp`, `src/gd.hpp`, `src/s_gd.hpp`, `src/s_lbfgs.hpp`, `src/newton.hpp` implement deterministic and stochastic solvers on top of the base class.
 - **Network stack**: `src/network.hpp` and `src/layer.hpp` implement a dense MLP, with parameters packed in a flat array and gradients accumulated during backprop. Eigen matrices are used for forward/backward computations.
 
 ### CUDA Backend
@@ -121,8 +121,7 @@ The directory structure is as follows:
   ├── build/           # Build artifacts
   ├── src/             # Source code
   │   ├── lbfgs.hpp             # Deterministic L-BFGS
-  │   ├── s_lbfgs.hpp           # Stochastic L-BFGS implementation (Serial)
-  │   ├── s_lbfgs_parallel.hpp  # Stochastic L-BFGS implementation (OpenMP)
+  │   ├── s_lbfgs.hpp           # Stochastic L-BFGS implementation
   │   ├── network.hpp           # CPU MLP utilities (Eigen)
   │   └── cuda/                 # CUDA backend (network + optimizers + kernels)
   ├── tests/
