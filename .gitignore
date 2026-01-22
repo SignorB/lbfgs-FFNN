@@ -32,7 +32,7 @@
 *.app
 
 .DS_STORE
-build/
+build*/
 .vscode/
 .cache/
 tests/rand/data_bench*

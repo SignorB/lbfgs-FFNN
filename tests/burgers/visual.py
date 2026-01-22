@@ -7,7 +7,7 @@ import numpy as np
 
 target_times = [0.0, 0.5, 1.0, 1.5]
 colors = ['tab:blue', 'tab:green', 'tab:orange', 'tab:red']
-nu = 0.01 / np.pi 
+nu = 0.1 / np.pi 
 
 nx = 2000 
 x = np.linspace(-1, 1, nx)

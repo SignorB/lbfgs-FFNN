@@ -140,3 +140,21 @@ Notes: If CUDA is enabled but no CUDA compiler is found, CUDA targets are skippe
 ./build/test_fashion_gpu
 ./build/test_fashion_gpu_deep
 ```
+
+## PINN Experiments (Burgers)
+
+Standalone CMake is available under `tests/burgers` to keep the main project build unchanged. This target requires Clang and the Enzyme plugin.
+
+### Build
+```bash
+cmake -S tests/burgers -B build-burgers \
+  -DCMAKE_CXX_COMPILER=clang++-19 \
+  -DENZYME_PLUGIN_PATH=/path/to/ClangEnzyme-19.so
+
+cmake --build build-burgers -j
+```
+
+### Run
+```bash
+./build-burgers/test_burgers_parallel
+```

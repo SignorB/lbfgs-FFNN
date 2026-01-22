@@ -4,7 +4,15 @@
 #include "../iteration_recorder.hpp"
 #include <Eigen/Eigen>
 #include <cmath>
+#include <functional>
 #include <limits>
+
+extern "C" {
+extern double __enzyme_autodiff(void *, ...);
+extern int enzyme_dup;
+extern int enzyme_const;
+extern int enzyme_out;
+}
 
 namespace cpu_mlp {
 
@@ -29,10 +37,30 @@ public:
   virtual void setHessian(const HessFun<V, M> & /*hessFun*/) {}
 
   /**
+   * @brief Helper to solve directly using an Enzyme-compatible raw function.
+   * @tparam LossFn The raw C++ function pointer for the loss .
+   * @tparam DataType The type of the data structure passed to the loss.
+   * @param x Initial parameter vector.
+   * @param data Pointer to the data structure.
+   * @return Optimized parameter vector.
+   */
+  template <auto LossFn, typename DataType> V solve_with_enzyme(V x, DataType *data) {
+    VecFun<V, double> f = [data](const V &w) -> double { return LossFn(const_cast<double *>(w.data()), data); };
+    GradFun<V> Gradient = [data](const V &w) -> V {
+      V grad = V::Zero(w.size());
+      __enzyme_autodiff((void *)LossFn, enzyme_dup, const_cast<double *>(w.data()), grad.data(), enzyme_const, data);
+      return grad;
+    };
+    return this->solve(x, f, Gradient);
+  }
+
+  /**
    * @brief Sets the maximum number of iterations.
    * @param max_iters Limit on iterations.
    */
   void setMaxIterations(int max_iters) { _max_iters = max_iters; }
+  void setMaxLineIters(int max_line) { max_line_iters = max_line; }
+  void setArmijoMaxIter(int max_armijo) { max_line_iters = max_armijo; }
 
   /**
    * @brief Sets the tolerance for convergence.
