@@ -100,6 +100,8 @@ The directory structure is as follows:
 
 We use **CMake** for build configuration.
 
+If you prefer a docker setup, we provide a Docker image that installs all dependencies and lets you build/run inside the container. See `enviroment/README.md`.
+
 ### Prerequisites
 - CMake >= 3.18
 - A C++20 compiler
