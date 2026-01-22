@@ -153,7 +153,7 @@ ninja
 ninja check-enzyme
 ```
 
-We tested on `clang++-19`, but this should work with Clang >= 14.
+We tested on `clang++-15`, but this should work with Clang 11-16.
 
 ### Build
 ```bash
