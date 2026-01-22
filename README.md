@@ -4,45 +4,6 @@ Documentation: https://frabazz.github.io/lbfgs-FFNN/
 
 This project implements advanced Quasi-Newton optimization methods, specifically **L-BFGS** (Limited-memory Broyden–Fletcher–Goldfarb–Shanno) and its stochastic variant **S-LBFGS**, designed for large-scale and finite-sum minimization problems.
 
-## Problem Statement
-
-We consider the classical unconstrained non-linear optimization problem:
-
-$$
-\min_{w \in \mathbb{R}^d} F(w)
-$$
-
-where $F : \mathbb{R}^d \to \mathbb{R}$ is a smooth objective function.
-
-### Deterministic Optimization (L-BFGS)
-
-In the standard setting, we assume we can evaluate $F(w)$ and its full gradient $\nabla F(w)$ precisely. A standard second-order method is **Newton’s method**:
-
-$$
-w_{k+1} = w_k - H_k^{-1} \nabla F(w_k)
-$$
-
-where $H_k = \nabla^2 F(w_k)$ is the Hessian. While Newton's method has quadratic convergence, it is computationally expensive ($O(d^3)$ or $O(d^2)$ per step). **L-BFGS** approximates the product $H_k^{-1} v$ using a history of the last $m$ updates, reducing memory complexity to $O(md)$ and time complexity to $O(md)$.
-
-### Stochastic Optimization (S-LBFGS)
-
-We specifically address the **Finite Sum Minimization** problem, which is central to machine learning and neural network training:
-
-$$
-F(w) = \frac{1}{N} \sum_{i=1}^N f_i(w)
-$$
-
-where $N$ is the number of data points (or component functions), and $f_i(w)$ calculates the loss for the $i$-th sample (e.g., squared error $f_i(w) = \frac{1}{2}\|h(x_i; w) - y_i\|^2$).
-
-For large $N$, computing the full gradient $\nabla F(w) = \frac{1}{N} \sum \nabla f_i(w)$ at every iteration is prohibitively expensive. **Stochastic Gradient Descent (SGD)** addresses this by using a mini-batch $S \subset \{1, \dots, N\}$:
-
-$$
-\nabla F(w) \approx \frac{1}{|S|} \sum_{i \in S} \nabla f_i(w)
-$$
-
-However, SGD suffers from high variance and requires diminishing step sizes, leading to slow convergence. **S-LBFGS** combines the curvature information of L-BFGS with variance reduction techniques to achieve faster convergence in stochastic settings.
-
----
 
 ## Algorithms
 
@@ -101,16 +62,17 @@ The codebase is split into two concrete backends that share the same high-level 
 
 ### CPU Backend (Eigen + OpenMP)
 
-- **Core optimizer API**: `src/minimizer_base.hpp` exposes a common interface plus line search and helpers for automatic differentiation (autodiff and optional Enzyme).
-- **Optimizers**: `src/lbfgs.hpp`, `src/bfgs.hpp`, `src/gd.hpp`, `src/s_gd.hpp`, `src/s_lbfgs.hpp`, `src/newton.hpp` implement deterministic and stochastic solvers on top of the base class.
-- **Network stack**: `src/network.hpp` and `src/layer.hpp` implement a dense MLP, with parameters packed in a flat array and gradients accumulated during backprop. Eigen matrices are used for forward/backward computations.
+- **Core optimizer API**: `src/minimizer/` hosts shared minimizer utilities and interfaces (full-batch and stochastic base classes, ring buffer).
+- **Optimizers**: `src/minimizer/lbfgs.hpp`, `src/minimizer/bfgs.hpp`, `src/minimizer/gd.hpp`, `src/minimizer/s_gd.hpp`, `src/minimizer/s_lbfgs.hpp`, `src/minimizer/newton.hpp`.
+- **Network stack**: `src/network.hpp` and `src/layer.hpp` implement a dense MLP with flat parameter storage and Eigen-based forward/backward.
+- **Unified training flow**: `src/unified_optimization.hpp`, `src/unified_launcher.hpp`, and `src/network_wrapper.hpp` provide backend-agnostic configuration, dataset wiring, and optimizer strategies.
 
 ### CUDA Backend
 
 - **CUDA primitives**: `src/cuda/device_buffer.cuh` wraps device memory, `src/cuda/cublas_handle.cuh` manages cuBLAS, and `src/cuda/kernels.cuh` hosts custom kernels (activation, loss, etc.).
 - **Network stack**: `src/cuda/network.cuh` and `src/cuda/layer.cuh` implement a GPU MLP. Parameters and gradients live in contiguous device buffers; per-layer activations/deltas are allocated per batch; GEMMs use cuBLAS.
 - **Optimizers**: `src/cuda/minimizer_base.cuh` defines a CUDA optimizer interface. `src/cuda/gd.cuh`, `src/cuda/sgd.cuh`, and `src/cuda/lbfgs.cuh` implement the training steps, with optional history tracking via `src/iteration_recorder.hpp`.
-- **Experiment runner**: `tests/cuda/launcher.hpp` wires datasets, networks, and optimizers together, logs CSV summaries, and produces history logs used by the plotting scripts.
+- **Unified training flow**: uses `src/unified_optimization.hpp`, `src/unified_launcher.hpp`, and `src/network_wrapper.hpp` (CUDA specializations compiled under `__CUDACC__`).
 
 ## Organization of the Code
 
@@ -118,15 +80,21 @@ The directory structure is as follows:
 
 ```text
 ./amsc
-  ├── build/           # Build artifacts
-  ├── src/             # Source code
-  │   ├── lbfgs.hpp             # Deterministic L-BFGS
-  │   ├── s_lbfgs.hpp           # Stochastic L-BFGS implementation
-  │   ├── network.hpp           # CPU MLP utilities (Eigen)
-  │   └── cuda/                 # CUDA backend (network + optimizers + kernels)
+  ├── build/                     # Build artifacts
+  ├── src/                       # Source code
+  │   ├── minimizer/             # CPU optimizers + base interfaces
+  │   ├── cuda/                  # CUDA backend (network + optimizers + kernels)
+  │   ├── enzyme/                # Enzyme PINN experiments
+  │   ├── network.hpp            # CPU MLP utilities (Eigen)
+  │   ├── layer.hpp              # CPU layers/activations
+  │   ├── network_wrapper.hpp    # CPU/CUDA wrapper
+  │   ├── unified_optimization.hpp
+  │   └── unified_launcher.hpp
   ├── tests/
-  │   ├── mnist/                # CPU experiments (Eigen)
-  │   └── cuda/                 # CUDA experiments (MNIST/Fashion)
+  │   ├── mnist/                 # CPU/GPU MNIST runners
+  │   ├── fashion-mnist/         # CPU/GPU Fashion-MNIST runners
+  │   ├── burgers/               # PDE/PINN tests
+  │   └── pytorch/               # PyTorch reference scripts
   └── ...
 ```
 
@@ -134,42 +102,41 @@ The directory structure is as follows:
 
 We use **CMake** for build configuration.
 
-## EnzymeAD on Newer NVIDIA GPUs (Docker Workflow)
-
-To test EnzymeAD on an NVIDIA GTX5070 GPU, we had to work around driver and CUDA version constraints. CUDA 12.8 is required by the host driver, while Enzyme supports up to CUDA 11.5. For this reason we created a Docker image located at `environment/Dockerfile`. We compile inside the container targeting `sm_80`, and then run the binary on the newer GPU using CUDA forward compatibility.
-
-### Build the Docker image
-
-```bash
-docker build -t cuda11-enzyme -f environment/Dockerfile .
-```
-
-### Run the Docker container
-
-```bash
-docker run -it --rm --privileged --user root -v /:/host:Z cuda11-enzyme /bin/bash
-```
-
-### Compile the PINN binary inside the container
-
-```bash
-clang++-15 -std=c++17 /host/home/gio/amsc/tests/cuda/pinn_burgers.cu \
-  -fplugin=/usr/src/Enzyme/enzyme/build/Enzyme/ClangEnzyme-15.so \
-  -O3 --cuda-gpu-arch=sm_80 -lcudart -L/usr/local/cuda-11.5/lib64 -lcublas
-```
-
 ### Prerequisites
-*   C++ compiler with C++17 support (e.g., GCC, Clang)
-*   CMake (>= 3.10)
-*   Eigen3 (Linear algebra library)
-*   OpenMP (Optional, for parallel S-LBFGS)
-*   (Optional) CUDA toolkit for GPU support
+- CMake >= 3.18
+- A C++20 compiler (GCC/Clang)
+- Eigen3 (required)
+- OpenMP (optional, enables Eigen multithreading)
+- CUDA toolkit + cuBLAS (optional, for GPU targets)
 
-### Build Instructions
-
+### Build (CPU only)
 ```bash
-mkdir build
+mkdir -p build
 cd build
-cmake .. -DENABLE_CUDA=OFF  # Default is OFF, use -DENABLE_CUDA=ON to enable CUDA
+cmake .. -DENABLE_CUDA=OFF
 make
+```
+
+### Build (CPU + CUDA)
+```bash
+mkdir -p build
+cd build
+cmake .. -DENABLE_CUDA=ON
+make
+```
+Notes: If CUDA is enabled but no CUDA compiler is found, CUDA targets are skipped.
+
+### Run examples
+```bash
+./build/test_runner
+./build/test_runner_autodiff
+./build/test_mnist_cpu
+./build/test_fashion_cpu
+```
+
+### Run CUDA examples (when built with CUDA)
+```bash
+./build/test_mnist_gpu
+./build/test_fashion_gpu
+./build/test_fashion_gpu_deep
 ```
