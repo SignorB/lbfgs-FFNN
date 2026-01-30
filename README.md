@@ -4,6 +4,7 @@ Documentation: https://frabazz.github.io/lbfgs-FFNN/
 
 This project implements advanced Quasi-Newton optimization methods, specifically **L-BFGS** (Limited-memory Broyden–Fletcher–Goldfarb–Shanno) and its stochastic variant **S-LBFGS**, designed for large-scale minimization problems.
 
+The complete project report is available in **Report.pdf**; for **theoretical details**, **implementation choices** and **experimental results** refer to this document.
 
 ## Algorithms
 
